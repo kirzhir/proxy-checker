@@ -11,7 +11,6 @@ import (
 	"regexp"
 
 	"github.com/kirzhir/proxy-checker/pkg/checker"
-	"github.com/kirzhir/proxy-checker/pkg/strings"
 )
 
 type Configuration struct {
@@ -71,8 +70,6 @@ func main() {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Print(strings.ReverseRunes("!oG ,olleH"))
 }
 
 func initConfiguration(configFilepath string) (*Configuration, error) {
