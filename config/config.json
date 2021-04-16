@@ -1,0 +1,4 @@
+{
+    "checkerEndpount": "https://api.ipify.org/?format=json",
+    "connectionTimeout": 5
+}
