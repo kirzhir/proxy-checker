@@ -1,10 +1,10 @@
 package checker
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -34,7 +34,6 @@ func (c *Checker) Check(proxy string) (bool, error) {
 	// time_diff := time.Now().UnixNano() - start.UnixNano()
 
 	// fmt.Println(time_diff)
-	fmt.Println(string(body))
 
-	return true, nil
+	return string(body) == proxy[:strings.IndexByte(proxy, ':')], nil
 }

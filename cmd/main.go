@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sync"
 
 	"github.com/kirzhir/proxy-checker/pkg/checker"
 )
@@ -18,13 +19,24 @@ type Configuration struct {
 	ConnectionTimeout uint
 }
 
+type Result struct {
+	alive bool
+	proxy string
+}
+
 func main() {
 
 	proxyListFilepath := flag.String("proxy-list-path", "", "required param proxy-lsit filepath")
-	configFilepath := flag.String("config-path", "", "required param config filepath")
+	configFile := flag.String("config", "", "required param config filepath")
+
 	flag.Parse()
 
-	config, err := initConfiguration(*configFilepath)
+	configFilepath, err := filepath.Abs(*configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	config, err := initConfiguration(configFilepath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,24 +63,63 @@ func main() {
 	var proxy string
 	regexpcmp, _ := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]):[0-9]+$`)
 
-	c := checker.NewChecker(config.CheckerEndpount, config.ConnectionTimeout)
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		proxy = scanner.Text()
-		if ok = regexpcmp.MatchString(proxy); !ok {
-			continue
-		}
+	jobs := make(chan string)
+	results := make(chan *Result)
 
-		_, err := c.Check(proxy)
-		if err != nil {
-			log.Println(err)
-		} else {
-			log.Printf("Alive: %v", proxy)
-		}
+	wg := &sync.WaitGroup{}
+	c := checker.NewChecker(config.CheckerEndpount, config.ConnectionTimeout)
+	for w := 1; w <= 10; w++ {
+		wg.Add(1)
+		go func(id int, c *checker.Checker, jobs <-chan string, results chan<- *Result) {
+			defer wg.Done()
+			for proxy := range jobs {
+				alive, err := c.Check(proxy)
+				if err != nil {
+					// log.Println(err)
+				}
+
+				results <- &Result{alive, proxy}
+			}
+		}(w, c, jobs, results)
 	}
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+	scanner := bufio.NewScanner(file)
+	go func() {
+		for scanner.Scan() {
+			proxy = scanner.Text()
+			if ok = regexpcmp.MatchString(proxy); !ok {
+				continue
+			}
+
+			jobs <- proxy
+		}
+		close(jobs)
+
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	var alive []string
+	exit := make(chan interface{})
+	go func() {
+		for result := range results {
+			if !result.alive {
+				fmt.Printf("%s failed\n", result.proxy)
+			} else {
+				alive = append(alive, result.proxy)
+			}
+		}
+
+		exit <- struct{}{}
+	}()
+
+	wg.Wait()
+	close(results)
+
+	<-exit
+	for proxy := range alive {
+		fmt.Println(proxy)
 	}
 }
 
