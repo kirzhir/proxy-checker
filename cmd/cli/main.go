@@ -4,13 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"log/slog"
 	"os"
 	"os/signal"
-	"os/user"
-	"path/filepath"
-	"strings"
+	"proxy-checker/internal/proxy"
 	"syscall"
 	"time"
 )
@@ -48,23 +47,98 @@ func main() {
 }
 
 func run(opts options) error {
-	_, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
+	exit := make(chan error)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	fmt.Println(expandPath(opts.Input))
+	proxiesCh := runReading(ctx, opts.Input)
+	resultCh := runChecking(ctx, proxiesCh)
 
-	return nil
+	runWriting(ctx, opts.Output, resultCh)
+
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		slog.Warn("interrupt signal")
+		<-stop
+		cancel()
+
+		<-time.After(1 * time.Second)
+		exit <- nil
+	}()
+
+	return <-exit
 }
 
-func expandPath(path string) (string, error) {
-	if strings.HasPrefix(path, "~") {
-		usr, err := user.Current()
+func runWriting(ctx context.Context, out string, proxiesCh <-chan string) {
+
+	writer := proxy.NewStdoutWriter()
+
+	go func() {
+		err := writer.Write(ctx, proxiesCh)
 		if err != nil {
-			return "", err
+			slog.Error(err.Error())
 		}
-		return filepath.Join(usr.HomeDir, path[1:]), nil
+	}()
+}
+
+func runChecking(ctx context.Context, proxiesCh <-chan string) <-chan string {
+	res := make(chan string)
+	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(10)
+
+	for i := 0; i < 10; i++ {
+		group.Go(func() error {
+			checker := proxy.Checker{Target: "http://checkip.amazonaws.com/", Timeout: 5 * time.Second}
+
+			for {
+				select {
+				case ch, ok := <-proxiesCh:
+					if !ok {
+						return nil
+					}
+
+					if err := checker.Check(ctx, ch); err != nil {
+						slog.Debug(err.Error())
+					} else {
+						res <- ch
+					}
+				case <-ctx.Done():
+					return nil
+				}
+			}
+		})
 	}
-	return path, nil
+
+	go func() {
+		if err := group.Wait(); err != nil {
+			slog.Error(err.Error())
+		}
+
+		close(res)
+	}()
+
+	return res
+}
+
+func runReading(ctx context.Context, in string) <-chan string {
+	var reader proxy.Reader
+
+	if in == "stdin" {
+		reader = proxy.NewStdinReader()
+	} else {
+		reader = proxy.NewFileReader(in)
+	}
+
+	proxiesCh := make(chan string)
+	go func() {
+		defer close(proxiesCh)
+
+		if err := reader.Read(ctx, proxiesCh); err != nil {
+			slog.Error(err.Error())
+		}
+	}()
+
+	return proxiesCh
 }
 
 func setupLogger(o *options) {
