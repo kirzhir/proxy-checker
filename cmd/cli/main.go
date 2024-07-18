@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"golang.org/x/sync/errgroup"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
 	"proxy-checker/internal/proxy"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -38,9 +39,10 @@ func main() {
 	slog.Debug("debug enabled")
 
 	if err := run(opts); err != nil {
-		if opts.Debug {
-			log.Panicf("[ERROR] %v", err)
+		if errors.Is(err, context.Canceled) {
+			os.Exit(0)
 		}
+
 		fmt.Printf("failed, %v\n", err.Error())
 		os.Exit(1)
 	}
@@ -49,16 +51,9 @@ func main() {
 func run(opts options) error {
 	exit := make(chan error)
 	ctx, cancel := context.WithCancel(context.Background())
-
-	proxiesCh := runReading(ctx, opts.Input)
-	resultCh := runChecking(ctx, proxiesCh)
-
-	runWriting(ctx, opts.Output, resultCh)
-
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		slog.Warn("interrupt signal")
 		<-stop
 		cancel()
 
@@ -66,35 +61,47 @@ func run(opts options) error {
 		exit <- nil
 	}()
 
+	eg, ctx := errgroup.WithContext(ctx)
+
+	proxiesCh := runReading(ctx, opts.Input, eg)
+	resultCh := runChecking(ctx, proxiesCh, eg)
+	runWriting(ctx, opts.Output, resultCh, eg)
+
+	go func() {
+		exit <- eg.Wait()
+	}()
+
 	return <-exit
 }
 
-func runWriting(ctx context.Context, out string, proxiesCh <-chan string) {
+func runWriting(ctx context.Context, out string, proxiesCh <-chan string, eg *errgroup.Group) {
+	var writer proxy.Writer
+	if out == "stdout" {
+		writer = proxy.NewStdoutWriter()
+	} else {
+		writer = proxy.NewFileWriter(out)
+	}
 
-	writer := proxy.NewStdoutWriter()
-
-	go func() {
-		err := writer.Write(ctx, proxiesCh)
-		if err != nil {
-			slog.Error(err.Error())
-		}
-	}()
+	eg.Go(func() error {
+		return writer.Write(ctx, proxiesCh)
+	})
 }
 
-func runChecking(ctx context.Context, proxiesCh <-chan string) <-chan string {
+func runChecking(ctx context.Context, proxiesCh <-chan string, eg *errgroup.Group) <-chan string {
 	res := make(chan string)
-	group, ctx := errgroup.WithContext(ctx)
-	group.SetLimit(10)
 
-	for i := 0; i < 10; i++ {
-		group.Go(func() error {
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			checker := proxy.Checker{Target: "http://checkip.amazonaws.com/", Timeout: 5 * time.Second}
 
 			for {
 				select {
 				case ch, ok := <-proxiesCh:
 					if !ok {
-						return nil
+						return
 					}
 
 					if err := checker.Check(ctx, ch); err != nil {
@@ -103,24 +110,23 @@ func runChecking(ctx context.Context, proxiesCh <-chan string) <-chan string {
 						res <- ch
 					}
 				case <-ctx.Done():
-					return nil
+					return
 				}
 			}
-		})
+		}()
 	}
 
-	go func() {
-		if err := group.Wait(); err != nil {
-			slog.Error(err.Error())
-		}
-
+	eg.Go(func() error {
+		wg.Wait()
 		close(res)
-	}()
+
+		return nil
+	})
 
 	return res
 }
 
-func runReading(ctx context.Context, in string) <-chan string {
+func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan string {
 	var reader proxy.Reader
 
 	if in == "stdin" {
@@ -130,13 +136,11 @@ func runReading(ctx context.Context, in string) <-chan string {
 	}
 
 	proxiesCh := make(chan string)
-	go func() {
+	eg.Go(func() error {
 		defer close(proxiesCh)
 
-		if err := reader.Read(ctx, proxiesCh); err != nil {
-			slog.Error(err.Error())
-		}
-	}()
+		return reader.Read(ctx, proxiesCh)
+	})
 
 	return proxiesCh
 }

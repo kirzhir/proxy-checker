@@ -30,8 +30,8 @@ func NewStdinReader() *StdinReader {
 	return &StdinReader{}
 }
 
-func (f *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
-	filename, err := expandPath(f.filename)
+func (r *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
+	filename, err := expandPath(r.filename)
 	if err != nil {
 		return err
 	}
@@ -44,6 +44,13 @@ func (f *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 	reader := bufio.NewReader(file)
 
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+
+		}
+
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
 			break
@@ -55,7 +62,7 @@ func (f *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 	return file.Close()
 }
 
-func (s *StdinReader) Read(ctx context.Context, proxiesCh chan<- string) error {
+func (r *StdinReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	if _, err := fmt.Fprintln(os.Stdout, "Enter proxy address IP:PORT"); err != nil {
