@@ -38,7 +38,8 @@ func main() {
 	slog.Info("starting", slog.String("in", opts.Input), slog.String("out", opts.Output))
 	slog.Debug("debug enabled")
 
-	if err := run(opts); err != nil {
+	ctx := context.Background()
+	if err := run(ctx, opts); err != nil {
 		if errors.Is(err, context.Canceled) {
 			os.Exit(0)
 		}
@@ -48,9 +49,11 @@ func main() {
 	}
 }
 
-func run(opts options) error {
+func run(ctx context.Context, opts options) error {
 	exit := make(chan error)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
