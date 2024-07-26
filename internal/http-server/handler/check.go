@@ -38,12 +38,11 @@ func ProxyCheck(checker *proxy.Checker) http.HandlerFunc {
 		}
 
 		if problems := req.Valid(ctx); len(problems) > 0 {
-			fmt.Println(problems)
 			responseFail(w, r, http.StatusBadRequest, "invalid request", problems)
 			return
 		}
 
-		proxiesCh := make(chan string, oneTimeCheckLimit)
+		proxiesCh := make(chan string, len(req))
 		for _, p := range req {
 			proxiesCh <- p
 		}
@@ -59,10 +58,11 @@ func ProxyCheck(checker *proxy.Checker) http.HandlerFunc {
 }
 
 func runChecking(ctx context.Context, proxiesCh <-chan string, checker *proxy.Checker) <-chan string {
-	res := make(chan string, len(proxiesCh))
+	proxiesNum := len(proxiesCh)
+	res := make(chan string, proxiesNum)
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < oneTimeCheckLimit; i++ {
+	for i := 0; i < proxiesNum; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
