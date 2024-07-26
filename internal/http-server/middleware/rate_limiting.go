@@ -23,8 +23,8 @@ func RateLimiting(next http.Handler) http.Handler {
 			time.Sleep(time.Minute)
 
 			mu.Lock()
-			for ip, client := range clients {
-				if time.Since(client.lastSeen) > 3*time.Minute {
+			for ip, c := range clients {
+				if time.Since(c.lastSeen) > 3*time.Minute {
 					delete(clients, ip)
 				}
 			}
