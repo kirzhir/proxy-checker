@@ -12,7 +12,6 @@ func New(cfg *config.Config) http.Handler {
 
 	addRoutes(
 		mux,
-		cfg,
 		proxy.NewChecker(cfg.ProxyChecker),
 	)
 

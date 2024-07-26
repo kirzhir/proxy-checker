@@ -2,17 +2,15 @@ package http_server
 
 import (
 	"net/http"
-	"proxy-checker/internal/config"
 	"proxy-checker/internal/http-server/handler"
 	"proxy-checker/internal/proxy"
 )
 
 func addRoutes(
 	mux *http.ServeMux,
-	cfg *config.Config,
 	checker *proxy.Checker,
 ) {
-	mux.Handle("/api/v1/check", handler.ProxyCheck(checker, cfg))
+	mux.Handle("/api/v1/check", handler.ProxyCheck(checker))
 	mux.Handle("/healthz", handleHealthz())
 	mux.Handle("/", http.NotFoundHandler())
 }

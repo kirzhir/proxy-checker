@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"proxy-checker/internal/config"
 	"proxy-checker/internal/proxy"
 	"sync"
 )
@@ -28,7 +27,7 @@ func (r request) Valid(ctx context.Context) map[string]error {
 	return errors
 }
 
-func ProxyCheck(checker *proxy.Checker, cfg *config.Config) http.HandlerFunc {
+func ProxyCheck(checker *proxy.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		req, err := decode[request](r)
@@ -51,7 +50,7 @@ func ProxyCheck(checker *proxy.Checker, cfg *config.Config) http.HandlerFunc {
 		close(proxiesCh)
 
 		resp := response{}
-		for p := range runChecking(ctx, proxiesCh, cfg.ProxyChecker) {
+		for p := range runChecking(ctx, proxiesCh, checker) {
 			resp = append(resp, p)
 		}
 
@@ -59,7 +58,7 @@ func ProxyCheck(checker *proxy.Checker, cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-func runChecking(ctx context.Context, proxiesCh <-chan string, cfg config.ProxyChecker) <-chan string {
+func runChecking(ctx context.Context, proxiesCh <-chan string, checker *proxy.Checker) <-chan string {
 	res := make(chan string, len(proxiesCh))
 
 	wg := &sync.WaitGroup{}
@@ -67,7 +66,6 @@ func runChecking(ctx context.Context, proxiesCh <-chan string, cfg config.ProxyC
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			checker := proxy.NewChecker(cfg)
 
 			for {
 				select {
