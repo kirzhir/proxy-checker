@@ -2,24 +2,24 @@ package http_server
 
 import (
 	"net/http"
+	"proxy-checker/internal/config"
 	"proxy-checker/internal/http-server/handler"
 	"proxy-checker/internal/proxy"
 )
 
 func addRoutes(
 	mux *http.ServeMux,
+	cfg *config.Config,
 	checker *proxy.Checker,
 ) {
-	//mux.HandleFunc("/healthz", handleHealthzPlease(logger))
-
-	mux.Handle("/api/v1/", ApiMux(checker))
+	mux.Handle("/api/v1/check", handler.ProxyCheck(checker, cfg))
+	mux.Handle("/healthz", handleHealthz())
 	mux.Handle("/", http.NotFoundHandler())
 }
 
-func ApiMux(checker *proxy.Checker) http.Handler {
-	apiMux := http.NewServeMux()
-
-	apiMux.Handle("/check", handler.ProxyCheck(checker))
-
-	return http.StripPrefix("/api/v1", apiMux)
+func handleHealthz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}
 }

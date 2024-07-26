@@ -77,6 +77,7 @@ func setupLogger(env string) {
 	switch env {
 	case "local":
 		logger = slog.Default()
+		slog.SetLogLoggerLevel(slog.LevelDebug)
 	case "dev":
 		logger = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),

@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"proxy-checker/internal/config"
@@ -47,7 +48,10 @@ func (c *Checker) Check(ctx context.Context, line string) error {
 		return err
 	}
 
+	slog.Debug("Doing request to %s", line)
 	resp, err := client.Do(req)
+	slog.Debug("Request finished to %s", line, err)
+
 	if err != nil {
 		return err
 	}

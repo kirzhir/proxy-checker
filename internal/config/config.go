@@ -22,7 +22,7 @@ type HTTPServer struct {
 
 type ProxyChecker struct {
 	API         string        `yaml:"api" env-default:"http://checkip.amazonaws.com"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"2s"`
+	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
 	Concurrency int           `yaml:"concurrency" env-default:"100"`
 }
 
