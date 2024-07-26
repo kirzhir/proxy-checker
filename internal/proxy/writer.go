@@ -53,8 +53,8 @@ func (w *FileWriter) Write(ctx context.Context, proxiesCh <-chan string) error {
 			if !ok {
 				return writer.Flush()
 			}
-			_, err = writer.WriteString(proxy + "\n")
-			if err != nil {
+
+			if _, err = writer.WriteString(proxy + "\n"); err != nil {
 				return fmt.Errorf("failed to write to file: %w", err)
 			}
 		}

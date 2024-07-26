@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"proxy-checker/internal/config"
+	http_server "proxy-checker/internal/http-server"
 	"syscall"
 	"time"
 )
@@ -36,11 +37,11 @@ func main() {
 
 func run(ctx context.Context, cfg *config.Config) error {
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
-		Handler:      NewServer(cfg),
+		Handler:      http_server.New(cfg),
 		ReadTimeout:  cfg.HTTPServer.Timeout,
 		WriteTimeout: cfg.HTTPServer.Timeout,
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
@@ -70,46 +71,12 @@ func run(ctx context.Context, cfg *config.Config) error {
 	return eg.Wait()
 }
 
-func NewServer(cfg *config.Config) http.Handler {
-	mux := http.NewServeMux()
-	addRoutes(
-		mux,
-		cfg,
-	)
-	var handler http.Handler = mux
-	//handler = someMiddleware(handler)
-	//handler = someMiddleware2(handler)
-	//handler = someMiddleware3(handler)
-	return handler
-}
-
-func addRoutes(
-	mux *http.ServeMux,
-	cfg *config.Config,
-	// tenantsStore        *TenantsStore,
-	// commentsStore       *CommentsStore,
-	// conversationService *ConversationService,
-	// chatGPTService      *ChatGPTService,
-	// authProxy           *authProxy
-) {
-	//mux.Handle("/api/v1/", handleTenantsGet(logger, tenantsStore))
-	//mux.Handle("/oauth2/", handleOAuth2Proxy(logger, authProxy))
-	//mux.HandleFunc("/healthz", handleHealthzPlease(logger))
-	mux.Handle("/", http.NotFoundHandler())
-	mux.HandleFunc("/test", func(w http.ResponseWriter, req *http.Request) {
-		time.Sleep(2 * time.Second)
-		fmt.Fprintln(w, "Hello world!")
-	})
-}
-
-func setupLogger(env string) *slog.Logger {
+func setupLogger(env string) {
 	var logger *slog.Logger
 
 	switch env {
 	case "local":
-		logger = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
+		logger = slog.Default()
 	case "dev":
 		logger = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
@@ -124,5 +91,5 @@ func setupLogger(env string) *slog.Logger {
 		)
 	}
 
-	return logger
+	slog.SetDefault(logger)
 }

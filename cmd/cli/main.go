@@ -56,7 +56,7 @@ func run(ctx context.Context, opts options) error {
 
 	go func() {
 		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 		<-stop
 		cancel()
 
@@ -98,7 +98,7 @@ func runChecking(ctx context.Context, proxiesCh <-chan string, eg *errgroup.Grou
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			checker := proxy.Checker{Target: "http://checkip.amazonaws.com/", Timeout: 5 * time.Second}
+			checker := proxy.NewChecker("http://checkip.amazonaws.com/", 5*time.Second)
 
 			for {
 				select {
@@ -155,20 +155,5 @@ func setupLogger(o *options) {
 		level = slog.LevelDebug
 	}
 
-	logger := slog.New(
-		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			Level: level,
-			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-				if a.Key != slog.TimeKey {
-					return a
-				}
-
-				a.Value = slog.StringValue(a.Value.Time().Format(time.DateTime))
-
-				return a
-			},
-		}),
-	)
-
-	slog.SetDefault(logger)
+	slog.SetLogLoggerLevel(level)
 }

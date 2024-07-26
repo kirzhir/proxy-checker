@@ -20,6 +20,10 @@ type Checker struct {
 	Timeout time.Duration
 }
 
+func NewChecker(target string, timeout time.Duration) *Checker {
+	return &Checker{Target: target, Timeout: timeout}
+}
+
 func (c *Checker) Check(ctx context.Context, line string) error {
 	var proxy string
 	if proxy = pattern.FindString(line); proxy == "" {
