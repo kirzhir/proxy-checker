@@ -9,11 +9,7 @@ func RequestSizing(next http.Handler) http.Handler {
 
 	const MaxUploadSize = 5 * 1024 * 1024 // 5 MB  TODO: Move to a config file
 
-	log := slog.With(
-		slog.String("component", "middleware/request_sizing"),
-	)
-
-	log.Info("request_sizing middleware enabled")
+	slog.Info("request_sizing middleware enabled", slog.String("component", "middleware/request_sizing"))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ContentLength > MaxUploadSize {
