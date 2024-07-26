@@ -5,9 +5,10 @@ import (
 	"net/http"
 )
 
-const MaxUploadSize = 5 * 1024 * 1024 // 5 MB  TODO: Move to a config file
-
 func RequestSizing(next http.Handler) http.Handler {
+
+	const MaxUploadSize = 5 * 1024 * 1024 // 5 MB  TODO: Move to a config file
+
 	log := slog.With(
 		slog.String("component", "middleware/request_sizing"),
 	)

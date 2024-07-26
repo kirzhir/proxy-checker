@@ -3,6 +3,7 @@ package http_server
 import (
 	"net/http"
 	"proxy-checker/internal/http-server/handler"
+	"proxy-checker/internal/http-server/middleware"
 	"proxy-checker/internal/proxy"
 )
 
@@ -10,7 +11,7 @@ func addRoutes(
 	mux *http.ServeMux,
 	checker *proxy.Checker,
 ) {
-	mux.Handle("/api/v1/check", handler.ProxyCheck(checker))
+	mux.Handle("/api/v1/check", middleware.RateLimiting(handler.ProxyCheck(checker)))
 	mux.Handle("/healthz", handleHealthz())
 	mux.Handle("/", http.NotFoundHandler())
 }
