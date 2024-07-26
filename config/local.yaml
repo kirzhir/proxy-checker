@@ -6,3 +6,4 @@ http_server:
 proxy_checker:
   api: "https://api64.ipify.org"
   timeout: 5s
+  concurrency: 100

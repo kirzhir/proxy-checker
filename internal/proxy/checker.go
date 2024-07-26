@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"proxy-checker/internal/config"
 	"regexp"
 	"time"
 )
@@ -20,8 +21,8 @@ type Checker struct {
 	Timeout time.Duration
 }
 
-func NewChecker(target string, timeout time.Duration) *Checker {
-	return &Checker{Target: target, Timeout: timeout}
+func NewChecker(cfg config.ProxyChecker) *Checker {
+	return &Checker{Target: cfg.API, Timeout: cfg.Timeout}
 }
 
 func (c *Checker) Check(ctx context.Context, line string) error {

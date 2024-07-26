@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"proxy-checker/internal/config"
 	"proxy-checker/internal/proxy"
 	"sync"
 	"syscall"
@@ -32,6 +33,8 @@ func parseOpts(o *options) {
 func main() {
 	var opts options
 
+	cfg := config.MustLoadEnv()
+
 	parseOpts(&opts)
 	setupLogger(&opts)
 
@@ -39,7 +42,7 @@ func main() {
 	slog.Debug("debug enabled")
 
 	ctx := context.Background()
-	if err := run(ctx, opts); err != nil {
+	if err := run(ctx, opts, cfg); err != nil {
 		if errors.Is(err, context.Canceled) {
 			os.Exit(0)
 		}
@@ -49,7 +52,7 @@ func main() {
 	}
 }
 
-func run(ctx context.Context, opts options) error {
+func run(ctx context.Context, opts options, cfg *config.Config) error {
 	exit := make(chan error)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -67,7 +70,7 @@ func run(ctx context.Context, opts options) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	proxiesCh := runReading(ctx, opts.Input, eg)
-	resultCh := runChecking(ctx, proxiesCh, eg)
+	resultCh := runChecking(ctx, proxiesCh, cfg.ProxyChecker, eg)
 	runWriting(ctx, opts.Output, resultCh, eg)
 
 	go func() {
@@ -90,15 +93,15 @@ func runWriting(ctx context.Context, out string, proxiesCh <-chan string, eg *er
 	})
 }
 
-func runChecking(ctx context.Context, proxiesCh <-chan string, eg *errgroup.Group) <-chan string {
+func runChecking(ctx context.Context, proxiesCh <-chan string, cfg config.ProxyChecker, eg *errgroup.Group) <-chan string {
 	res := make(chan string)
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 100; i++ {
+	for i := 0; i < cfg.Concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			checker := proxy.NewChecker("http://checkip.amazonaws.com/", 5*time.Second)
+			checker := proxy.NewChecker(cfg)
 
 			for {
 				select {

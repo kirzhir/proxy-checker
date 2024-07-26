@@ -18,7 +18,7 @@ import (
 
 func main() {
 
-	cfg := config.MustLoad()
+	cfg := config.MustLoadFile()
 	setupLogger(cfg.Env)
 
 	slog.Info("starting", slog.String("env", cfg.Env))
