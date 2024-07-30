@@ -3,11 +3,12 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"io"
 	"net/http"
 	"net/url"
 	"proxy-checker/internal/config"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -32,8 +33,31 @@ func (c *Checker) Check(ctx context.Context, line string) error {
 		return fmt.Errorf("invalid proxy url: %s", line)
 	}
 
+	r := make(chan error)
+
+	go func() {
+		r <- c.doRequest(ctx, "http", proxy)
+	}()
+
+	go func() {
+		r <- c.doRequest(ctx, "socks5", proxy)
+	}()
+
+	var err error
+	for i := 0; i < 2; i++ {
+		if err = <-r; err == nil {
+			return nil
+		}
+	}
+
+	return err
+}
+
+func (c *Checker) doRequest(ctx context.Context, schema, proxy string) error {
+
 	proxyURL := http.ProxyURL(&url.URL{
-		Host: proxy,
+		Host:   proxy,
+		Scheme: schema,
 	})
 
 	client := &http.Client{
@@ -43,22 +67,29 @@ func (c *Checker) Check(ctx context.Context, line string) error {
 		Timeout: c.Timeout,
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", c.Target, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.Target, nil)
 	if err != nil {
 		return err
 	}
 
-	slog.Debug("Doing request to", slog.String("proxy", line))
 	resp, err := client.Do(req)
-	slog.Debug("Request finished", slog.String("proxy", line), slog.Any("error", err))
-
 	if err != nil {
-		return err
+		return fmt.Errorf("request failed: %w", err)
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("non-200 response: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if !strings.Contains(string(body), strings.Split(proxy, ":")[0]) {
+		return fmt.Errorf("proxy IP mismatch: %s", proxy)
 	}
 
 	return nil

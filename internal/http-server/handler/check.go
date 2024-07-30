@@ -86,8 +86,10 @@ func runChecking(ctx context.Context, proxiesCh <-chan string, checker *proxy.Ch
 		}()
 	}
 
-	wg.Wait()
-	close(res)
+	go func() {
+		wg.Wait()
+		close(res)
+	}()
 
 	return res
 }
