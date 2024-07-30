@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/sync/errgroup"
+	"html/template"
 	"log"
 	"log/slog"
 	"net/http"
@@ -19,13 +20,14 @@ import (
 func main() {
 
 	cfg := config.MustLoadFile()
+	temp := template.Must(template.ParseGlob("web/templates/*"))
 	setupLogger(cfg.Env)
 
 	slog.Info("starting", slog.String("env", cfg.Env))
 	slog.Debug("debug enabled")
 
 	ctx := context.Background()
-	if err := run(ctx, cfg); err != nil {
+	if err := run(ctx, cfg, temp); err != nil {
 		if errors.Is(err, context.Canceled) {
 			os.Exit(0)
 		}
@@ -35,13 +37,13 @@ func main() {
 	}
 }
 
-func run(ctx context.Context, cfg *config.Config) error {
+func run(ctx context.Context, cfg *config.Config, temp *template.Template) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
-		Handler:      http_server.New(cfg),
+		Handler:      http_server.New(cfg, temp),
 		ReadTimeout:  cfg.HTTPServer.Timeout,
 		WriteTimeout: cfg.HTTPServer.Timeout,
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
