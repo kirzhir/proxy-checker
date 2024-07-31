@@ -37,7 +37,8 @@ Read from standard input and output to a file:
 
 * Proxy-Checker can be run as an HTTP server to support API requests. Here’s how to start the server:
   ```sh
-  CONFIG_PATH=config/local.yaml ./bin/server
+  CONFIG_PATH=config/local.yaml ./bin
+/server
   ```
 * Once the server is running, you can check proxies using a POST request:
   ```sh
@@ -46,7 +47,7 @@ Read from standard input and output to a file:
 
 #### Web Interface
 
-Proxy-Checker also provides a web interface for checking proxies. Navigate to the running server's address in your web browser,  to see the form
+Proxy-Checker also provides a web interface for checking proxies. Navigate to the running server's address in your web browser,  to see the form <img width="438" alt="Снимок экрана 2024-07-31 в 21 15 47" src="https://github.com/user-attachments/assets/29159d78-8e2e-44be-acc8-9191f1407285">
 
 
 <!-- LICENSE -->
