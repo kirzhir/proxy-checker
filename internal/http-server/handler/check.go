@@ -117,10 +117,10 @@ func runChecking(ctx context.Context, proxiesCh <-chan string, checker *proxy.Ch
 						return
 					}
 
-					if err := checker.Check(ctx, ch); err != nil {
+					if p, err := checker.Check(ctx, ch); err != nil {
 						slog.Debug(err.Error())
 					} else {
-						res <- ch
+						res <- p
 					}
 				case <-ctx.Done():
 					return

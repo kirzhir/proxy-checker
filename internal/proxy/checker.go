@@ -27,10 +27,10 @@ func NewChecker(cfg config.ProxyChecker) *Checker {
 	return &Checker{Target: cfg.API, Timeout: cfg.Timeout}
 }
 
-func (c *Checker) Check(ctx context.Context, line string) error {
+func (c *Checker) Check(ctx context.Context, line string) (string, error) {
 	var proxy string
 	if proxy = pattern.FindString(line); proxy == "" {
-		return fmt.Errorf("invalid proxy url: %s", line)
+		return proxy, fmt.Errorf("invalid proxy url: %s", line)
 	}
 
 	r := make(chan error)
@@ -46,11 +46,11 @@ func (c *Checker) Check(ctx context.Context, line string) error {
 	var err error
 	for i := 0; i < 2; i++ {
 		if err = <-r; err == nil {
-			return nil
+			return proxy, nil
 		}
 	}
 
-	return err
+	return proxy, err
 }
 
 func (c *Checker) doRequest(ctx context.Context, schema, proxy string) error {

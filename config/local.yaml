@@ -5,5 +5,5 @@ http_server:
   idle_timeout: 30s
 proxy_checker:
   api: "http://checkip.amazonaws.com"
-  timeout: 1800ms
+  timeout: 2400ms
   concurrency: 100
