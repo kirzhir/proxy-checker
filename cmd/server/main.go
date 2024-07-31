@@ -10,9 +10,11 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"proxy-checker/internal/config"
 	http_server "proxy-checker/internal/http-server"
+	"runtime"
 	"syscall"
 	"time"
 )
@@ -50,6 +52,10 @@ func run(ctx context.Context, cfg *config.Config, temp *template.Template) error
 	}
 
 	var eg errgroup.Group
+
+	eg.Go(func() error {
+		return open(cfg)
+	})
 
 	eg.Go(func() error {
 		log.Printf("listening on %s\n", srv.Addr)
@@ -95,4 +101,25 @@ func setupLogger(env string) {
 	}
 
 	slog.SetDefault(logger)
+}
+
+func open(cfg *config.Config) error {
+	if cfg.Env != "local" {
+		return nil
+	}
+
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = "cmd"
+		args = []string{"/c", "start"}
+	case "darwin":
+		cmd = "open"
+	default: // "linux", "freebsd", "openbsd", "netbsd"
+		cmd = "xdg-open"
+	}
+
+	return exec.Command(cmd, append(args, "http://"+cfg.Address)...).Start()
 }
