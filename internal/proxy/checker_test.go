@@ -52,13 +52,13 @@ func TestCheck(t *testing.T) {
 
 	checker.Target = server.URL
 
-	err = checker.Check(ctx, line)
+	_, err = checker.Check(ctx, line)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 
 	invalidLine := "invalid proxy"
-	err = checker.Check(ctx, invalidLine)
+	_, err = checker.Check(ctx, invalidLine)
 	if err == nil {
 		t.Errorf("expected error for invalid proxy line, got none")
 	}
