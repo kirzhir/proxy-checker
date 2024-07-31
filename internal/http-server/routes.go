@@ -13,8 +13,9 @@ func addRoutes(
 	temp *template.Template,
 	checker *proxy.Checker,
 ) {
-	mux.Handle("/api/v1/check", middleware.RateLimiting(handler.ProxyCheck(checker)))
+	mux.Handle("/api/v1/check", middleware.RateLimiting(handler.ProxyCheckApi(checker)))
 	mux.Handle("/healthz", handleHealthz())
+	mux.Handle("/check", handler.ProxyCheckWeb(temp, checker))
 	mux.Handle("/", handleHomepage(temp))
 }
 

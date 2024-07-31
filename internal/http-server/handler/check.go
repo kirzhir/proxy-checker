@@ -3,9 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"proxy-checker/internal/proxy"
+	"strings"
 	"sync"
 )
 
@@ -15,7 +17,7 @@ type response []string
 
 type request []string
 
-func (r request) Valid(ctx context.Context) map[string]error {
+func (r request) Valid(_ context.Context) map[string]error {
 	var errors = map[string]error{}
 
 	if len(r) < 1 {
@@ -27,7 +29,7 @@ func (r request) Valid(ctx context.Context) map[string]error {
 	return errors
 }
 
-func ProxyCheck(checker *proxy.Checker) http.HandlerFunc {
+func ProxyCheckApi(checker *proxy.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		req, err := decode[request](r)
@@ -54,6 +56,39 @@ func ProxyCheck(checker *proxy.Checker) http.HandlerFunc {
 		}
 
 		responseSuccess(w, r, resp)
+	}
+}
+
+func ProxyCheckWeb(temp *template.Template, checker *proxy.Checker) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		if err := r.ParseForm(); err != nil {
+			renderFail(w, r, fmt.Sprintf("Error parsing form: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		proxies := r.FormValue("proxies")
+		if proxies == "" {
+			renderFail(w, r, "Proxies parameter is missing", http.StatusBadRequest)
+			return
+		}
+
+		req := strings.Split(proxies, "\n")
+		proxiesCh := make(chan string, len(req))
+		for _, p := range req {
+			proxiesCh <- p
+		}
+		close(proxiesCh)
+
+		resp := response{}
+		for p := range runChecking(ctx, proxiesCh, checker) {
+			resp = append(resp, p)
+		}
+
+		if err := temp.ExecuteTemplate(w, "proxies_table.html.tmpl", resp); err != nil {
+			renderFail(w, r, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 

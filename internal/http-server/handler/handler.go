@@ -30,6 +30,10 @@ func decode[T any](r *http.Request) (T, error) {
 	return v, nil
 }
 
+func renderFail(w http.ResponseWriter, r *http.Request, msg string, status int) {
+	http.Error(w, msg, status)
+}
+
 func render(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data interface{}) error {
 	w.Header().Set("Content-Type", "text/html")
 	if err := tmpl.Execute(w, data); err != nil {
