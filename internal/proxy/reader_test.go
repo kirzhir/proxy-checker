@@ -12,10 +12,10 @@ import (
 
 func TestFileReader_Read(t *testing.T) {
 
-	filepath := "testdata/inventory.txt"
+	f := "testdata/read_proxies.txt"
 	proxies := []string{"127.0.0.1:8080", "192.168.0.1:3128"}
 
-	reader := NewFileReader(filepath)
+	reader := NewFileReader(f)
 	proxiesCh := make(chan string, len(proxies))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
