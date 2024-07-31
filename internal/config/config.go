@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	Env          string `yaml:"env" env-default:"local"`
+	Env          string `yaml:"env" env:"ENV" env-default:"local"`
 	HTTPServer   `yaml:"http_server"`
 	ProxyChecker `yaml:"proxy_checker"`
 }
@@ -21,9 +21,9 @@ type HTTPServer struct {
 }
 
 type ProxyChecker struct {
-	API         string        `yaml:"api" env-default:"http://checkip.amazonaws.com"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
-	Concurrency int           `yaml:"concurrency" env-default:"100"`
+	API         string        `yaml:"api" env:"API" env-default:"http://checkip.amazonaws.com"`
+	Timeout     time.Duration `yaml:"timeout" env:"TIMEOUT" env-default:"5s"`
+	Concurrency int           `yaml:"concurrency" env:"CONCURRENCY" env-default:"100"`
 }
 
 func MustLoadFile() *Config {
