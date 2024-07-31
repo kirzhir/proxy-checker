@@ -59,6 +59,14 @@ func ProxyCheckApi(checker *proxy.Checker) http.HandlerFunc {
 	}
 }
 
+func ProxyCheckForm(temp *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := temp.ExecuteTemplate(w, "proxy_check_form.html.tmpl", nil); err != nil {
+			slog.Error(err.Error())
+		}
+	}
+}
+
 func ProxyCheckWeb(temp *template.Template, checker *proxy.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
