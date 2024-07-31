@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<script src="https://unpkg.com/htmx.org@2.0.1" integrity="sha384-QWGpdj554B4ETpJJC9z+ZHJcA/i59TyjxEPXiiUgN2WmTyV5OEZWCD6gQhgkdpB/" crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js"></script>
+    <meta name="htmx-config" content='{"responseHandling":[{"code":".*", "swap": true, "error": true}]}'>
+    <style>.spinner {display: none;} .htmx-request .spinner {display: inline;} .htmx-request .button-text {display: none;}</style>
+</head>
+<body>
+<div style="text-align: center; font-family: Arial, sans-serif; font-size: 18px;">
+	<h1 style="position: relative; color: #4fbbd6; margin-top: 0.2em;">Proxy-checker</h1>
+	<p style="position: relative; max-width: 20em; margin: 0 auto 1em auto; line-height: 1.4em; font-size: 15px;">Free online proxy checker service that evaluates the performance of proxy servers.</p>
+	<div style="background-color: #eee; max-width: 20em; margin: 0 auto; border-radius: 0.4em; padding: 0.5em;">
+		<p style="position: relative; margin: 0 0 0.5em 0;">Proxy list:</p>
+		<p style="position: relative; font-size: 0.7em; opacity: 0.8;"><i>If you have public proxies (without username and password), then IP:PORT</i></p>
+        <form hx-post="/check" hx-target="#result" hx-swap="innerHTML" hx-on::after-request="this.reset()">
+            <textarea
+                rows="16"
+                style="resize: vertical; width: 90%; position: relative; font-family: monospace; background-color: #fff; margin: 0; padding: 0.5em; word-break: break-all; text-align: left; border-radius: 0.8em; -webkit-user-select: all; user-select: all;"
+                placeholder="Type your proxies here...&#13;&#10;127.0.0.1:8081&#13;&#10;192.168.1.1:80"
+                id="proxies" name="proxies"></textarea>
+
+            <button
+                class="button-text"
+                style="background-color: #4fbbd6; border: none; border-radius: 0.4em; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; font-size: 15px; cursor:pointer;"
+                type="submit"
+                hx-indicator="#spinner"
+            >
+                <svg  class="spinner animate-spin" id="spinner"  width="14" height="14" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="#FFFFFF">
+                    <rect y="10" width="15" height="120" rx="6">
+                        <animate attributeName="height"
+                             begin="0.5s" dur="1s"
+                             values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear"
+                             repeatCount="indefinite" />
+                        <animate attributeName="y"
+                             begin="0.5s" dur="1s"
+                             values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear"
+                             repeatCount="indefinite" />
+                    </rect>
+                    <rect x="30" y="10" width="15" height="120" rx="6">
+                        <animate attributeName="height"
+                             begin="0.25s" dur="1s"
+                             values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear"
+                             repeatCount="indefinite" />
+                        <animate attributeName="y"
+                             begin="0.25s" dur="1s"
+                             values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear"
+                             repeatCount="indefinite" />
+                    </rect>
+                    <rect x="60" width="15" height="140" rx="6">
+                        <animate attributeName="height"
+                             begin="0s" dur="1s"
+                             values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear"
+                             repeatCount="indefinite" />
+                        <animate attributeName="y"
+                             begin="0s" dur="1s"
+                             values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear"
+                             repeatCount="indefinite" />
+                    </rect>
+                    <rect x="90" y="10" width="15" height="120" rx="6">
+                        <animate attributeName="height"
+                             begin="0.25s" dur="1s"
+                             values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear"
+                             repeatCount="indefinite" />
+                        <animate attributeName="y"
+                             begin="0.25s" dur="1s"
+                             values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear"
+                             repeatCount="indefinite" />
+                    </rect>
+                    <rect x="120" y="10" width="15" height="120" rx="6">
+                        <animate attributeName="height"
+                             begin="0.5s" dur="1s"
+                             values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear"
+                             repeatCount="indefinite" />
+                        <animate attributeName="y"
+                             begin="0.5s" dur="1s"
+                             values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear"
+                             repeatCount="indefinite" />
+                    </rect>
+                </svg>
+
+                <span class="button-text">Click me</span>
+            </button>
+        </form>
+
+        <div id="result" style="color: red" hx-swap-oob="true"></div>
+	</div>
+</div>
+</body>
+</html>
