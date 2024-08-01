@@ -14,20 +14,24 @@ import (
 
 var pattern *regexp.Regexp
 
+type Checker interface {
+	Check(ctx context.Context, line string) (string, error)
+}
+
 func init() {
 	pattern = regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b`)
 }
 
-type Checker struct {
+type ProxyChecker struct {
 	Target  string
 	Timeout time.Duration
 }
 
-func NewChecker(cfg config.ProxyChecker) *Checker {
-	return &Checker{Target: cfg.API, Timeout: cfg.Timeout}
+func NewChecker(cfg config.ProxyChecker) Checker {
+	return &ProxyChecker{Target: cfg.API, Timeout: cfg.Timeout}
 }
 
-func (c *Checker) Check(ctx context.Context, line string) (string, error) {
+func (c *ProxyChecker) Check(ctx context.Context, line string) (string, error) {
 	var proxy string
 	if proxy = pattern.FindString(line); proxy == "" {
 		return proxy, fmt.Errorf("invalid proxy url: %s", line)
@@ -53,7 +57,7 @@ func (c *Checker) Check(ctx context.Context, line string) (string, error) {
 	return proxy, err
 }
 
-func (c *Checker) doRequest(ctx context.Context, schema, proxy string) error {
+func (c *ProxyChecker) doRequest(ctx context.Context, schema, proxy string) error {
 
 	proxyURL := http.ProxyURL(&url.URL{
 		Host:   proxy,

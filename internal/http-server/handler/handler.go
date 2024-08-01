@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -57,6 +58,25 @@ func responseSuccess(w http.ResponseWriter, r *http.Request, data interface{}) {
 type errorResponse struct {
 	Message  string
 	Problems map[string]error
+}
+
+func (e *errorResponse) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Message  string            `json:"message"`
+		Problems map[string]string `json:"problems"`
+	}
+
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	e.Message = raw.Message
+	e.Problems = make(map[string]error, len(raw.Problems))
+	for key, problem := range raw.Problems {
+		e.Problems[key] = errors.New(problem)
+	}
+
+	return nil
 }
 
 func (e errorResponse) MarshalJSON() ([]byte, error) {
