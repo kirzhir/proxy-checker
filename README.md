@@ -48,7 +48,7 @@ Read from standard input and output to a file:
 
 Proxy-Checker also provides a web interface for checking proxies. Navigate to the running server's address in your web browser,  to see the form 
 
-<img width="200" alt="Снимок экрана 2024-07-31 в 21 15 47" src="https://github.com/user-attachments/assets/29159d78-8e2e-44be-acc8-9191f1407285">
+<img width="200" alt="Снимок экрана 2024-08-01 в 14 21 48" src="https://github.com/user-attachments/assets/4bc778f8-8f76-40d0-a1d9-587e795f07d7">
 
 
 ## Configuration
