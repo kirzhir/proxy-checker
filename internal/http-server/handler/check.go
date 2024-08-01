@@ -29,7 +29,7 @@ func (r request) Valid(_ context.Context) map[string]error {
 	return errors
 }
 
-func ProxyCheckApi(checker *proxy.Checker) http.HandlerFunc {
+func ProxyCheckApi(checker proxy.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		req, err := decode[request](r)
@@ -67,7 +67,7 @@ func ProxyCheckForm(temp *template.Template) http.HandlerFunc {
 	}
 }
 
-func ProxyCheckWeb(temp *template.Template, checker *proxy.Checker) http.HandlerFunc {
+func ProxyCheckWeb(temp *template.Template, checker proxy.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -100,7 +100,7 @@ func ProxyCheckWeb(temp *template.Template, checker *proxy.Checker) http.Handler
 	}
 }
 
-func runChecking(ctx context.Context, proxiesCh <-chan string, checker *proxy.Checker) <-chan string {
+func runChecking(ctx context.Context, proxiesCh <-chan string, checker proxy.Checker) <-chan string {
 	proxiesNum := len(proxiesCh)
 	res := make(chan string, proxiesNum)
 
