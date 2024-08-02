@@ -1,10 +1,8 @@
-package main
+package cmd
 
 import (
 	"context"
-	"errors"
 	"flag"
-	"fmt"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"os"
@@ -16,43 +14,46 @@ import (
 	"time"
 )
 
-type options struct {
-	Output string `name:"output" default:"stdout"`
-	Input  string `name:"input"  default:"stdin"`
-	Debug  bool   `name:"debug" default:"false"`
+type CliCommand struct {
+	fs  *flag.FlagSet
+	cfg *config.Config
+
+	output string
+	input  string
+	debug  bool
 }
 
-func parseOpts(o *options) {
-	flag.StringVar(&o.Output, "output", "stdout", "output file")
-	flag.StringVar(&o.Input, "input", "stdin", "input file")
-	flag.BoolVar(&o.Debug, "debug", false, "enable debug mode")
+func NewCliCommand() *CliCommand {
+	gc := &CliCommand{
+		fs: flag.NewFlagSet("cli", flag.ContinueOnError),
+	}
 
-	flag.Parse()
+	gc.fs.StringVar(&gc.output, "output", "stdout", "output file")
+	gc.fs.StringVar(&gc.input, "input", "stdin", "input file")
+	gc.fs.BoolVar(&gc.debug, "debug", false, "enable debug mode")
+
+	return gc
 }
 
-func main() {
-	var opts options
+func (g *CliCommand) Name() string {
+	return g.fs.Name()
+}
 
-	cfg := config.MustLoadEnv()
+func (g *CliCommand) Init(args []string) error {
+	if err := g.fs.Parse(args); err != nil {
+		return err
+	}
 
-	parseOpts(&opts)
-	setupLogger(&opts)
+	g.cfg = config.MustLoadEnv()
+	g.setupLogger()
 
-	slog.Info("starting", slog.String("in", opts.Input), slog.String("out", opts.Output))
+	slog.Info("starting", slog.String("in", g.input), slog.String("out", g.output))
 	slog.Debug("debug enabled")
 
-	ctx := context.Background()
-	if err := run(ctx, opts, cfg); err != nil {
-		if errors.Is(err, context.Canceled) {
-			os.Exit(0)
-		}
-
-		fmt.Printf("failed, %v\n", err.Error())
-		os.Exit(1)
-	}
+	return nil
 }
 
-func run(ctx context.Context, opts options, cfg *config.Config) error {
+func (g *CliCommand) Run(ctx context.Context) error {
 	exit := make(chan error)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -69,9 +70,9 @@ func run(ctx context.Context, opts options, cfg *config.Config) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	proxiesCh := runReading(ctx, opts.Input, eg)
-	resultCh := runChecking(ctx, proxiesCh, cfg.ProxyChecker, eg)
-	runWriting(ctx, opts.Output, resultCh, eg)
+	proxiesCh := runReading(ctx, g.input, eg)
+	resultCh := runChecking(ctx, proxiesCh, g.cfg.ProxyChecker, eg)
+	runWriting(ctx, g.output, resultCh, eg)
 
 	go func() {
 		exit <- eg.Wait()
@@ -151,10 +152,10 @@ func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan strin
 	return proxiesCh
 }
 
-func setupLogger(o *options) {
+func (g *CliCommand) setupLogger() {
 	level := slog.LevelInfo
 
-	if o.Debug {
+	if g.debug {
 		level = slog.LevelDebug
 	}
 

@@ -1,9 +1,9 @@
-package main
+package cmd
 
 import (
 	"context"
 	"errors"
-	"fmt"
+	"flag"
 	"golang.org/x/sync/errgroup"
 	"html/template"
 	"log"
@@ -19,42 +19,59 @@ import (
 	"time"
 )
 
-func main() {
+type ServerCommand struct {
+	fs   *flag.FlagSet
+	cfg  *config.Config
+	temp *template.Template
 
-	cfg := config.MustLoadFile()
-	temp := template.Must(template.ParseGlob("web/templates/*"))
-	setupLogger(cfg.Env)
-
-	slog.Info("starting", slog.String("env", cfg.Env))
-	slog.Debug("debug enabled")
-
-	ctx := context.Background()
-	if err := run(ctx, cfg, temp); err != nil {
-		if errors.Is(err, context.Canceled) {
-			os.Exit(0)
-		}
-
-		fmt.Printf("failed, %v\n", err.Error())
-		os.Exit(1)
-	}
+	output string
+	input  string
+	debug  bool
 }
 
-func run(ctx context.Context, cfg *config.Config, temp *template.Template) error {
+func NewServerCommand() *ServerCommand {
+	gc := &ServerCommand{
+		fs: flag.NewFlagSet("serve", flag.ContinueOnError),
+	}
+
+	return gc
+}
+
+func (g *ServerCommand) Name() string {
+	return g.fs.Name()
+}
+
+func (g *ServerCommand) Init(args []string) error {
+	if err := g.fs.Parse(args); err != nil {
+		return err
+	}
+
+	g.cfg = config.MustLoadFile()
+	g.temp = template.Must(template.ParseGlob("web/templates/*"))
+
+	g.setupLogger()
+	slog.Info("starting", slog.String("env", g.cfg.Env))
+	slog.Debug("debug enabled")
+
+	return nil
+}
+
+func (g *ServerCommand) Run(ctx context.Context) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	srv := &http.Server{
-		Addr:         cfg.Address,
-		Handler:      http_server.New(cfg, temp),
-		ReadTimeout:  cfg.HTTPServer.Timeout,
-		WriteTimeout: cfg.HTTPServer.Timeout,
-		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+		Addr:         g.cfg.Address,
+		Handler:      http_server.New(g.cfg, g.temp),
+		ReadTimeout:  g.cfg.HTTPServer.Timeout,
+		WriteTimeout: g.cfg.HTTPServer.Timeout,
+		IdleTimeout:  g.cfg.HTTPServer.IdleTimeout,
 	}
 
 	var eg errgroup.Group
 
 	eg.Go(func() error {
-		return open(cfg)
+		return open(g.cfg)
 	})
 
 	eg.Go(func() error {
@@ -79,10 +96,10 @@ func run(ctx context.Context, cfg *config.Config, temp *template.Template) error
 	return eg.Wait()
 }
 
-func setupLogger(env string) {
+func (g *ServerCommand) setupLogger() {
 	var logger *slog.Logger
 
-	switch env {
+	switch g.cfg.Env {
 	case "local":
 		logger = slog.Default()
 		slog.SetLogLoggerLevel(slog.LevelDebug)

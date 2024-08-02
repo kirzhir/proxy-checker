@@ -20,15 +20,15 @@ You can use Proxy-Checker from the command line to check proxies. Here are some 
 Read from standard input and output to a file:
 * Read from standard input and output to a file:
   ```sh
-  cat /path/to/proxies.txt | ./bin/cli -output=~/path/to/ok-proxies.txt
+  cat /path/to/proxies.txt | ./proxy-checker cli -output=~/path/to/ok-proxies.txt
   ```
 * Check proxies from a file:
   ```sh
-  ./bin/cli -input=~/path/to/proxies.csv
+  ./proxy-checker cli -input=~/path/to/proxies.csv
   ```
 * Default settings (input from stdin and output to stdout):
   ```sh
-  ./bin/cli
+  ./proxy-checker cli
   ```
 
 ### HTTP Server
@@ -37,7 +37,7 @@ Read from standard input and output to a file:
 
 * Proxy-Checker can be run as an HTTP server to support API requests. Here’s how to start the server:
   ```sh
-  CONFIG_PATH=config/local.yaml ./bin/server
+  CONFIG_PATH=config/local.yaml ./proxy-checker serve
   ```
 * Once the server is running, you can check proxies using a POST request:
   ```sh
@@ -58,7 +58,7 @@ Proxy-Checker also provides a web interface for checking proxies. Navigate to th
 The HTTP server reads its configuration from a file specified by the CONFIG_PATH environment variable. You need to set this variable to the path of your configuration file before running the server. The configuration file should be in YAML format.
 * Example
   ```sh
-  CONFIG_PATH=config/local.yaml ./bin/server
+  CONFIG_PATH=config/local.yaml ./proxy-checker serve
   ```
 * Structure
   ```yaml
@@ -78,7 +78,7 @@ The HTTP server reads its configuration from a file specified by the CONFIG_PATH
 The CLI utility reads all its configuration from environment variables. Each configuration parameter should be set as an environment variable before running the CLI utility.
 * Example
   ```sh
-  API=https://api64.ipify.org TIMEOUT=1s CONCURRENCY=200 ./bin/cli
+  API=https://api64.ipify.org TIMEOUT=1s CONCURRENCY=200 ./proxy-checker cli
   ```
 
 <!-- LICENSE -->
