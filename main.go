@@ -33,6 +33,7 @@ func root(args []string) error {
 	cmds := []Runner{
 		cmd.NewCliCommand(),
 		cmd.NewServerCommand(),
+		cmd.NewBotCommand(),
 	}
 
 	subcommand := os.Args[1]

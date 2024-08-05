@@ -12,6 +12,11 @@ type Config struct {
 	Env          string `yaml:"env" env:"ENV" env-default:"local"`
 	HTTPServer   `yaml:"http_server"`
 	ProxyChecker `yaml:"proxy_checker"`
+	TelegramBot  `yaml:"telegram_bot"`
+}
+
+type TelegramBot struct {
+	APIToken string `yaml:"api_token" env:"TELEGRAM_API_TOKEN" env-default:""`
 }
 
 type HTTPServer struct {
