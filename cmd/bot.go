@@ -7,10 +7,13 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"log/slog"
+	"os"
+	"os/signal"
 	"proxy-checker/internal/config"
 	"proxy-checker/internal/proxy"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 type BotCommand struct {
@@ -53,13 +56,20 @@ func (g *BotCommand) Init(args []string) error {
 }
 
 func (g *BotCommand) Run(ctx context.Context) error {
-
 	bot, err := tgbotapi.NewBotAPI(g.cfg.APIToken)
 	if err != nil {
 		return err
 	}
 
 	bot.Debug = g.debug
+
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+
+		<-stop
+		bot.StopReceivingUpdates()
+	}()
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
