@@ -46,7 +46,7 @@ func (g *ServerCommand) Init(args []string) error {
 		return err
 	}
 
-	g.cfg = config.MustLoadFile()
+	g.cfg = config.MustLoad()
 	g.temp = template.Must(template.ParseGlob("web/templates/*"))
 
 	g.setupLogger()

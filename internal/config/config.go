@@ -27,34 +27,27 @@ type HTTPServer struct {
 
 type ProxyChecker struct {
 	API         string        `yaml:"api" env:"API" env-default:"http://checkip.amazonaws.com"`
-	Timeout     time.Duration `yaml:"timeout" env:"TIMEOUT" env-default:"5s"`
+	Timeout     time.Duration `yaml:"timeout" env:"TIMEOUT" env-default:"2400ms"`
 	Concurrency int           `yaml:"concurrency" env:"CONCURRENCY" env-default:"100"`
 }
 
-func MustLoadFile() *Config {
+func MustLoad() *Config {
+	var cfg Config
 	configPath := os.Getenv("CONFIG_PATH")
+
 	if configPath == "" {
-		log.Panicf("CONFIG_PATH is not set")
+		if err := cleanenv.ReadEnv(&cfg); err != nil {
+			log.Panicf("cannot read config: %s", err)
+		}
+
+		return &cfg
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Panicf("config file does not exist: %s", configPath)
 	}
 
-	var cfg Config
-
 	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Panicf("cannot read config: %s", err)
-	}
-
-	return &cfg
-}
-
-func MustLoadEnv() *Config {
-
-	var cfg Config
-
-	if err := cleanenv.ReadEnv(&cfg); err != nil {
 		log.Panicf("cannot read config: %s", err)
 	}
 

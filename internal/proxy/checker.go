@@ -4,34 +4,101 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"proxy-checker/internal/config"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
 var pattern *regexp.Regexp
 
-type Checker interface {
-	Check(ctx context.Context, line string) (string, error)
-}
-
 func init() {
 	pattern = regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b`)
 }
 
+type Checker interface {
+	CheckOne(ctx context.Context, line string) (string, error)
+	Check(ctx context.Context, proxies <-chan string) (<-chan string, <-chan error)
+	AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error)
+}
+
 type ProxyChecker struct {
-	Target  string
-	Timeout time.Duration
+	Target      string
+	Timeout     time.Duration
+	Concurrency int
 }
 
 func NewChecker(cfg config.ProxyChecker) Checker {
-	return &ProxyChecker{Target: cfg.API, Timeout: cfg.Timeout}
+	return &ProxyChecker{Target: cfg.API, Timeout: cfg.Timeout, Concurrency: cfg.Concurrency}
 }
 
-func (c *ProxyChecker) Check(ctx context.Context, line string) (string, error) {
+func (c *ProxyChecker) AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error) {
+	var err error
+	var res []string
+
+	resCh, errCh := c.Check(ctx, proxiesCh)
+
+	for {
+		select {
+		case ch, ok := <-resCh:
+			if !ok {
+				return res, err
+			}
+
+			res = append(res, ch)
+		case <-ctx.Done():
+			return res, ctx.Err()
+		case err = <-errCh:
+			return res, err
+		}
+	}
+}
+
+func (c *ProxyChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-chan string, <-chan error) {
+	errCh := make(chan error, 1)
+	resCh := make(chan string, c.Concurrency)
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < c.Concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for {
+				select {
+				case ch, ok := <-proxiesCh:
+					if !ok {
+						return
+					}
+
+					if p, err := c.CheckOne(ctx, ch); err != nil {
+						slog.Debug(err.Error())
+					} else {
+						resCh <- p
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(resCh)
+
+		errCh <- nil
+		close(errCh)
+	}()
+
+	return resCh, errCh
+}
+
+func (c *ProxyChecker) CheckOne(ctx context.Context, line string) (string, error) {
 	var proxy string
 	if proxy = pattern.FindString(line); proxy == "" {
 		return proxy, fmt.Errorf("invalid proxy url: %s", line)

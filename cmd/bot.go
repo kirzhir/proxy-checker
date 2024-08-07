@@ -12,7 +12,6 @@ import (
 	"proxy-checker/internal/config"
 	"proxy-checker/internal/proxy"
 	"strings"
-	"sync"
 	"syscall"
 )
 
@@ -44,7 +43,7 @@ func (g *BotCommand) Init(args []string) error {
 
 	g.setupLogger()
 
-	g.cfg = config.MustLoadEnv()
+	g.cfg = config.MustLoad()
 	if g.cfg.APIToken == "" {
 		return fmt.Errorf("TELEGRAM_API_TOKEN is not set")
 	}
@@ -82,7 +81,7 @@ func (g *BotCommand) Run(ctx context.Context) error {
 		}
 
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-		go handleUpdate(context.Background(), bot, g.cfg, update)
+		go handleUpdate(ctx, bot, g.cfg, update)
 	}
 
 	return err
@@ -100,42 +99,7 @@ func handleUpdate(ctx context.Context, bot *tgbotapi.BotAPI, cfg *config.Config,
 		close(proxiesCh)
 	}()
 
-	res := make(chan string, cfg.Concurrency)
-	wg := &sync.WaitGroup{}
-	for i := 0; i < cfg.Concurrency; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			checker := proxy.NewChecker(cfg.ProxyChecker)
-
-			for {
-				select {
-				case ch, ok := <-proxiesCh:
-					if !ok {
-						return
-					}
-
-					if p, err := checker.Check(ctx, ch); err != nil {
-						slog.Debug(err.Error())
-					} else {
-						res <- p
-					}
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(res)
-	}()
-
-	var resp []string
-	for p := range res {
-		resp = append(resp, p)
-	}
+	resp, _ := proxy.NewChecker(cfg.ProxyChecker).AwaitCheck(ctx, proxiesCh)
 
 	if _, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(resp, "\n"))); err != nil {
 		slog.Error("sending message failed", slog.String("error", err.Error()))

@@ -8,12 +8,9 @@ import (
 	"net/http"
 	"proxy-checker/internal/proxy"
 	"strings"
-	"sync"
 )
 
 const oneTimeCheckLimit = 100
-
-type response []string
 
 type request []string
 
@@ -50,9 +47,11 @@ func ProxyCheckApi(checker proxy.Checker) http.HandlerFunc {
 		}
 		close(proxiesCh)
 
-		resp := response{}
-		for p := range runChecking(ctx, proxiesCh, checker) {
-			resp = append(resp, p)
+		resp, err := checker.AwaitCheck(ctx, proxiesCh)
+
+		if err != nil {
+			responseFail(w, r, http.StatusInternalServerError, err.Error(), nil)
+			return
 		}
 
 		responseSuccess(w, r, resp)
@@ -89,50 +88,15 @@ func ProxyCheckWeb(temp *template.Template, checker proxy.Checker) http.HandlerF
 		}
 		close(proxiesCh)
 
-		resp := response{}
-		for p := range runChecking(ctx, proxiesCh, checker) {
-			resp = append(resp, p)
+		resp, err := checker.AwaitCheck(ctx, proxiesCh)
+
+		if err != nil {
+			renderFail(w, r, fmt.Sprintf("Error checking: %s", err.Error()), http.StatusInternalServerError)
+			return
 		}
 
-		if err := temp.ExecuteTemplate(w, "proxies_table.html.tmpl", resp); err != nil {
+		if err = temp.ExecuteTemplate(w, "proxies_table.html.tmpl", resp); err != nil {
 			renderFail(w, r, err.Error(), http.StatusInternalServerError)
 		}
 	}
-}
-
-func runChecking(ctx context.Context, proxiesCh <-chan string, checker proxy.Checker) <-chan string {
-	proxiesNum := len(proxiesCh)
-	res := make(chan string, proxiesNum)
-
-	wg := &sync.WaitGroup{}
-	for i := 0; i < proxiesNum; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for {
-				select {
-				case ch, ok := <-proxiesCh:
-					if !ok {
-						return
-					}
-
-					if p, err := checker.Check(ctx, ch); err != nil {
-						slog.Debug(err.Error())
-					} else {
-						res <- p
-					}
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(res)
-	}()
-
-	return res
 }

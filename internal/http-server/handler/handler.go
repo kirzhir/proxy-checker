@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 )
@@ -33,14 +32,6 @@ func decode[T any](r *http.Request) (T, error) {
 
 func renderFail(w http.ResponseWriter, r *http.Request, msg string, status int) {
 	http.Error(w, msg, status)
-}
-
-func render(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data interface{}) error {
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
-		return fmt.Errorf("render HTML: %w", err)
-	}
-	return nil
 }
 
 func responseFail(w http.ResponseWriter, r *http.Request, status int, message string, problems map[string]error) {

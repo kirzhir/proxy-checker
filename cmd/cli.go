@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"proxy-checker/internal/config"
 	"proxy-checker/internal/proxy"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -44,7 +43,7 @@ func (g *CliCommand) Init(args []string) error {
 		return err
 	}
 
-	g.cfg = config.MustLoadEnv()
+	g.cfg = config.MustLoad()
 	g.setupLogger()
 
 	slog.Info("starting", slog.String("in", g.input), slog.String("out", g.output))
@@ -71,8 +70,12 @@ func (g *CliCommand) Run(ctx context.Context) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	proxiesCh := runReading(ctx, g.input, eg)
-	resultCh := runChecking(ctx, proxiesCh, g.cfg.ProxyChecker, eg)
+	resultCh, errorsCh := proxy.NewChecker(g.cfg.ProxyChecker).Check(ctx, proxiesCh)
 	runWriting(ctx, g.output, resultCh, eg)
+
+	eg.Go(func() error {
+		return <-errorsCh
+	})
 
 	go func() {
 		exit <- eg.Wait()
@@ -92,45 +95,6 @@ func runWriting(ctx context.Context, out string, proxiesCh <-chan string, eg *er
 	eg.Go(func() error {
 		return writer.Write(ctx, proxiesCh)
 	})
-}
-
-func runChecking(ctx context.Context, proxiesCh <-chan string, cfg config.ProxyChecker, eg *errgroup.Group) <-chan string {
-	res := make(chan string)
-
-	wg := &sync.WaitGroup{}
-	for i := 0; i < cfg.Concurrency; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			checker := proxy.NewChecker(cfg)
-
-			for {
-				select {
-				case ch, ok := <-proxiesCh:
-					if !ok {
-						return
-					}
-
-					if p, err := checker.Check(ctx, ch); err != nil {
-						slog.Debug(err.Error())
-					} else {
-						res <- p
-					}
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	eg.Go(func() error {
-		wg.Wait()
-		close(res)
-
-		return nil
-	})
-
-	return res
 }
 
 func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan string {

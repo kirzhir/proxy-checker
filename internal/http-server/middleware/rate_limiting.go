@@ -9,50 +9,52 @@ import (
 	"time"
 )
 
-func RateLimiting(next http.Handler) http.Handler {
-	type client struct {
-		limiter  *rate.Limiter
-		lastSeen time.Time
-	}
-	var (
-		mu      sync.Mutex
-		clients = make(map[string]*client)
-	)
-	go func() {
-		for {
-			time.Sleep(time.Minute)
+func RateLimiting() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		type client struct {
+			limiter  *rate.Limiter
+			lastSeen time.Time
+		}
+		var (
+			mu      sync.Mutex
+			clients = make(map[string]*client)
+		)
+		go func() {
+			for {
+				time.Sleep(time.Minute)
+
+				mu.Lock()
+				for ip, c := range clients {
+					if time.Since(c.lastSeen) > 3*time.Minute {
+						delete(clients, ip)
+					}
+				}
+				mu.Unlock()
+			}
+		}()
+
+		slog.Info("rate_limiting middleware enabled", slog.String("component", "middleware/rate_limiting"))
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
 			mu.Lock()
-			for ip, c := range clients {
-				if time.Since(c.lastSeen) > 3*time.Minute {
-					delete(clients, ip)
-				}
+			defer mu.Unlock()
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{limiter: rate.NewLimiter(1, 1)}
 			}
-			mu.Unlock()
-		}
-	}()
 
-	slog.Info("rate_limiting middleware enabled", slog.String("component", "middleware/rate_limiting"))
+			clients[ip].lastSeen = time.Now()
+			if !clients[ip].limiter.Allow() {
+				http.Error(w, "too many request", http.StatusTooManyRequests)
+				return
+			}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		mu.Lock()
-		defer mu.Unlock()
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{limiter: rate.NewLimiter(1, 1)}
-		}
-
-		clients[ip].lastSeen = time.Now()
-		if !clients[ip].limiter.Allow() {
-			http.Error(w, "too many request", http.StatusTooManyRequests)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
