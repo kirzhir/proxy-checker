@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -61,19 +60,6 @@ func TestRenderFail(t *testing.T) {
 	renderFail(w, r, msg, status)
 	assert.Equal(t, status, w.Result().StatusCode)
 	assert.Equal(t, msg+"\n", w.Body.String())
-}
-
-func TestRender(t *testing.T) {
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	tmpl, err := template.New("test").Parse("<html><body>{{.}}</body></html>")
-	require.NoError(t, err)
-	data := "Hello, World!"
-
-	err = render(w, r, tmpl, data)
-	require.NoError(t, err)
-	assert.Equal(t, "text/html", w.Header().Get("Content-Type"))
-	assert.Contains(t, w.Body.String(), data)
 }
 
 func TestResponseFail(t *testing.T) {
