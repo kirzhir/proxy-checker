@@ -20,9 +20,10 @@ type TelegramBot struct {
 }
 
 type HTTPServer struct {
-	Address     string        `yaml:"address" env-default:"localhost:8080"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"4s"`
-	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+	Address        string        `yaml:"address" env-default:"localhost:8080"`
+	Timeout        time.Duration `yaml:"timeout" env-default:"4s"`
+	IdleTimeout    time.Duration `yaml:"idle_timeout" env-default:"60s"`
+	MaxRequestSize int64         `yaml:"max_request_size" env-default:"1048576"`
 }
 
 type ProxyChecker struct {

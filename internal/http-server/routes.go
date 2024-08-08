@@ -15,7 +15,7 @@ func New(cfg *config.Config, template *template.Template) http.Handler {
 	mux := chi.NewRouter()
 
 	mux.Use(middleware.Logging())
-	mux.Use(chi_middleware.RequestSize(5 * 1024 * 1024))
+	mux.Use(chi_middleware.RequestSize(cfg.MaxRequestSize))
 
 	addRoutes(
 		mux,
