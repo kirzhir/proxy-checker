@@ -57,7 +57,7 @@ func TestStdinReader_Read(t *testing.T) {
 
 	os.Stdin = r
 
-	input := "127.0.0.1:8080\n192.168.0.1:3128\nexit\n"
+	input := "127.0.0.1:8080\n192.168.0.1:3128\n\nexit\n"
 	go func() {
 		defer w.Close()
 		if _, err := io.WriteString(w, input); err != nil {
