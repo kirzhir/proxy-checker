@@ -19,7 +19,7 @@ type BotCommand struct {
 	fs  *flag.FlagSet
 	cfg *config.Config
 
-	debug bool
+	verbose bool
 }
 
 func NewBotCommand() *BotCommand {
@@ -27,7 +27,7 @@ func NewBotCommand() *BotCommand {
 		fs: flag.NewFlagSet("bot", flag.ContinueOnError),
 	}
 
-	gc.fs.BoolVar(&gc.debug, "debug", false, "enable debug mode")
+	gc.fs.BoolVar(&gc.verbose, "v", false, "verbosity mode")
 
 	return gc
 }
@@ -60,7 +60,7 @@ func (g *BotCommand) Run(ctx context.Context) error {
 		return err
 	}
 
-	bot.Debug = g.debug
+	bot.Debug = g.verbose
 
 	go func() {
 		stop := make(chan os.Signal, 1)
@@ -109,7 +109,7 @@ func handleUpdate(ctx context.Context, bot *tgbotapi.BotAPI, cfg *config.Config,
 func (g *BotCommand) setupLogger() {
 	level := slog.LevelInfo
 
-	if g.debug {
+	if g.verbose {
 		level = slog.LevelDebug
 	}
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"flag"
+	"fmt"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"os"
@@ -17,9 +18,10 @@ type CliCommand struct {
 	fs  *flag.FlagSet
 	cfg *config.Config
 
-	output string
-	input  string
-	debug  bool
+	output      string
+	input       string
+	verbose     bool
+	concurrency int
 }
 
 func NewCliCommand() *CliCommand {
@@ -27,9 +29,10 @@ func NewCliCommand() *CliCommand {
 		fs: flag.NewFlagSet("cli", flag.ContinueOnError),
 	}
 
-	gc.fs.StringVar(&gc.output, "output", "stdout", "output file")
-	gc.fs.StringVar(&gc.input, "input", "stdin", "input file")
-	gc.fs.BoolVar(&gc.debug, "debug", false, "enable debug mode")
+	gc.fs.StringVar(&gc.output, "o", "stdout", "output file")
+	gc.fs.StringVar(&gc.input, "i", "stdin", "input file")
+	gc.fs.IntVar(&gc.concurrency, "c", 0, "concurrency limit")
+	gc.fs.BoolVar(&gc.verbose, "v", false, "verbosity mode")
 
 	return gc
 }
@@ -40,6 +43,10 @@ func (g *CliCommand) Name() string {
 
 func (g *CliCommand) Init(args []string) error {
 	if err := g.fs.Parse(args); err != nil {
+		return err
+	}
+
+	if err := g.setConcurrencyEnv(); err != nil {
 		return err
 	}
 
@@ -116,10 +123,18 @@ func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan strin
 	return proxiesCh
 }
 
+func (g *CliCommand) setConcurrencyEnv() error {
+	if g.concurrency <= 0 {
+		return nil
+	}
+
+	return os.Setenv("CONCURRENCY", fmt.Sprintf("%d", g.concurrency))
+}
+
 func (g *CliCommand) setupLogger() {
 	level := slog.LevelInfo
 
-	if g.debug {
+	if g.verbose {
 		level = slog.LevelDebug
 	}
 

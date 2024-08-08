@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"golang.org/x/time/rate"
-	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -32,8 +31,6 @@ func RateLimiting() func(next http.Handler) http.Handler {
 				mu.Unlock()
 			}
 		}()
-
-		slog.Info("rate_limiting middleware enabled", slog.String("component", "middleware/rate_limiting"))
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)

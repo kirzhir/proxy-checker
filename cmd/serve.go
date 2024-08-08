@@ -24,15 +24,15 @@ type ServerCommand struct {
 	cfg  *config.Config
 	temp *template.Template
 
-	output string
-	input  string
-	debug  bool
+	verbose bool
 }
 
 func NewServerCommand() *ServerCommand {
 	gc := &ServerCommand{
 		fs: flag.NewFlagSet("serve", flag.ContinueOnError),
 	}
+
+	gc.fs.BoolVar(&gc.verbose, "v", false, "verbosity mode")
 
 	return gc
 }
@@ -99,21 +99,19 @@ func (g *ServerCommand) Run(ctx context.Context) error {
 func (g *ServerCommand) setupLogger() {
 	var logger *slog.Logger
 
+	level := slog.LevelInfo
+
+	if g.verbose {
+		level = slog.LevelDebug
+		slog.SetLogLoggerLevel(level)
+	}
+
 	switch g.cfg.Env {
 	case "local":
 		logger = slog.Default()
-		slog.SetLogLoggerLevel(slog.LevelDebug)
-	case "dev":
-		logger = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
-	case "prod":
-		logger = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
-		)
 	default:
 		logger = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}),
 		)
 	}
 
