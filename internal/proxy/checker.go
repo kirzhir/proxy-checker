@@ -14,11 +14,7 @@ import (
 	"time"
 )
 
-var pattern *regexp.Regexp
-
-func init() {
-	pattern = regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b`)
-}
+var pattern = regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b`)
 
 type Checker interface {
 	CheckOne(ctx context.Context, line string) (string, error)
@@ -33,36 +29,41 @@ type ProxyChecker struct {
 }
 
 func NewChecker(cfg config.ProxyChecker) Checker {
-	return &ProxyChecker{Target: cfg.API, Timeout: cfg.Timeout, Concurrency: cfg.Concurrency}
+	return &ProxyChecker{
+		Target:      cfg.API,
+		Timeout:     cfg.Timeout,
+		Concurrency: cfg.Concurrency,
+	}
 }
 
 func (c *ProxyChecker) AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error) {
-	var err error
-	var res []string
+	var (
+		res []string
+		err error
+	)
 
 	resCh, errCh := c.Check(ctx, proxiesCh)
 
 	for {
 		select {
-		case ch, ok := <-resCh:
+		case proxy, ok := <-resCh:
 			if !ok {
 				return res, err
 			}
-
-			res = append(res, ch)
-		case <-ctx.Done():
-			return res, ctx.Err()
+			res = append(res, proxy)
 		case err = <-errCh:
 			return res, err
+		case <-ctx.Done():
+			return res, ctx.Err()
 		}
 	}
 }
 
 func (c *ProxyChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-chan string, <-chan error) {
+	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 	resCh := make(chan string, c.Concurrency)
 
-	wg := &sync.WaitGroup{}
 	for i := 0; i < c.Concurrency; i++ {
 		wg.Add(1)
 		go func() {
@@ -90,8 +91,6 @@ func (c *ProxyChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-ch
 	go func() {
 		wg.Wait()
 		close(resCh)
-
-		errCh <- nil
 		close(errCh)
 	}()
 
@@ -125,7 +124,6 @@ func (c *ProxyChecker) CheckOne(ctx context.Context, line string) (string, error
 }
 
 func (c *ProxyChecker) doRequest(ctx context.Context, schema, proxy string) error {
-
 	proxyURL := http.ProxyURL(&url.URL{
 		Host:   proxy,
 		Scheme: schema,
@@ -140,14 +138,13 @@ func (c *ProxyChecker) doRequest(ctx context.Context, schema, proxy string) erro
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.Target, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -156,7 +153,7 @@ func (c *ProxyChecker) doRequest(ctx context.Context, schema, proxy string) erro
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("reading response body: %w", err)
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if !strings.Contains(string(body), strings.Split(proxy, ":")[0]) {
