@@ -27,7 +27,7 @@ func TestDoRequest_Success(t *testing.T) {
 	}
 	checker := NewChecker(cfg)
 
-	err := checker.(*ProxyChecker).doRequest(context.Background(), "http", proxyAddress)
+	err := checker.(*DefaultChecker).doRequest(context.Background(), "http", proxyAddress)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -53,7 +53,7 @@ func TestDoRequest_IPMismatch(t *testing.T) {
 	}
 	checker := NewChecker(cfg)
 
-	err := checker.(*ProxyChecker).doRequest(context.Background(), "http", proxyAddress)
+	err := checker.(*DefaultChecker).doRequest(context.Background(), "http", proxyAddress)
 
 	if err == nil || !strings.Contains(err.Error(), "proxy IP mismatch") {
 		t.Fatalf("expected IP mismatch error, got %v", err)

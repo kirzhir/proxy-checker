@@ -22,21 +22,21 @@ type Checker interface {
 	AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error)
 }
 
-type ProxyChecker struct {
+type DefaultChecker struct {
 	Target      string
 	Timeout     time.Duration
 	Concurrency int
 }
 
 func NewChecker(cfg config.ProxyChecker) Checker {
-	return &ProxyChecker{
+	return &DefaultChecker{
 		Target:      cfg.API,
 		Timeout:     cfg.Timeout,
 		Concurrency: cfg.Concurrency,
 	}
 }
 
-func (c *ProxyChecker) AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error) {
+func (c *DefaultChecker) AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error) {
 	var (
 		res []string
 		err error
@@ -59,7 +59,7 @@ func (c *ProxyChecker) AwaitCheck(ctx context.Context, proxiesCh <-chan string) 
 	}
 }
 
-func (c *ProxyChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-chan string, <-chan error) {
+func (c *DefaultChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-chan string, <-chan error) {
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 	resCh := make(chan string, c.Concurrency)
@@ -97,7 +97,7 @@ func (c *ProxyChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-ch
 	return resCh, errCh
 }
 
-func (c *ProxyChecker) CheckOne(ctx context.Context, line string) (string, error) {
+func (c *DefaultChecker) CheckOne(ctx context.Context, line string) (string, error) {
 	var proxy string
 	if proxy = pattern.FindString(line); proxy == "" {
 		return proxy, fmt.Errorf("invalid proxy url: %s", line)
@@ -123,7 +123,7 @@ func (c *ProxyChecker) CheckOne(ctx context.Context, line string) (string, error
 	return proxy, err
 }
 
-func (c *ProxyChecker) doRequest(ctx context.Context, schema, proxy string) error {
+func (c *DefaultChecker) doRequest(ctx context.Context, schema, proxy string) error {
 	proxyURL := http.ProxyURL(&url.URL{
 		Host:   proxy,
 		Scheme: schema,
