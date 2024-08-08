@@ -36,7 +36,7 @@ func addRoutes(
 
 	mux.Route("/api/v1/check", func(r chi.Router) {
 		r.Use(middleware.RateLimiting())
-		r.Post("/", handler.ProxyCheckApi(checker))
+		r.Post("/", handler.ProxyCheckAPI(checker))
 	})
 
 	mux.Route("/check", func(r chi.Router) {
