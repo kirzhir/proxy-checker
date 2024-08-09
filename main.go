@@ -50,5 +50,10 @@ func root(args []string) error {
 		return c.Run(context.Background())
 	}
 
-	return fmt.Errorf("unknown subcommand: %s", subcommand)
+	var join string
+	for _, c := range cmds {
+		join = fmt.Sprintf("%s '%s'", join, c.Name())
+	}
+
+	return fmt.Errorf("expected%s subcommands", join)
 }
