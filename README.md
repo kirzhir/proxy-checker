@@ -20,11 +20,11 @@ You can use Proxy-Checker from the command line to check proxies. Here are some 
 Read from standard input and output to a file:
 * Read from standard input and output to a file:
   ```sh
-  cat /path/to/proxies.txt | ./proxy-checker cli -output=~/path/to/ok-proxies.txt
+  cat /path/to/proxies.txt | ./proxy-checker cli -o=~/path/to/ok-proxies.txt
   ```
 * Check proxies from a file:
   ```sh
-  ./proxy-checker cli -input=~/path/to/proxies.csv
+  ./proxy-checker cli -i=~/path/to/proxies.csv
   ```
 * Default settings (input from stdin and output to stdout):
   ```sh
