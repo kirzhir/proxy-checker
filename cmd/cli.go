@@ -74,7 +74,7 @@ func (g *CliCommand) Run(ctx context.Context) error {
 		<-stop
 		cancel()
 
-		<-time.After(1 * time.Second)
+		<-time.After(g.cfg.ShutdownTimeout)
 		exit <- nil
 	}()
 
@@ -119,8 +119,6 @@ func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan strin
 
 	proxiesCh := make(chan string)
 	eg.Go(func() error {
-		defer close(proxiesCh)
-
 		return reader.Read(ctx, proxiesCh)
 	})
 

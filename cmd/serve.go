@@ -17,7 +17,6 @@ import (
 	"proxy-checker/internal/logger"
 	"runtime"
 	"syscall"
-	"time"
 )
 
 type ServerCommand struct {
@@ -98,7 +97,7 @@ func (g *ServerCommand) Run(ctx context.Context) error {
 	eg.Go(func() error {
 		<-stop
 
-		shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(ctx, g.cfg.ShutdownTimeout)
 		defer cancel()
 
 		return srv.Shutdown(shutdownCtx)

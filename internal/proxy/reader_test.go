@@ -25,8 +25,6 @@ func TestFileReader_Read(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to read proxies: %v", err)
 		}
-
-		close(proxiesCh)
 	}()
 
 	readProxies := []string{}
@@ -74,7 +72,6 @@ func TestStdinReader_Read(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read from stdin: %v", err)
 	}
-	close(proxiesCh)
 
 	expectedProxies := []string{"127.0.0.1:8080", "192.168.0.1:3128"}
 	readProxies := []string{}

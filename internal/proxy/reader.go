@@ -31,6 +31,8 @@ func NewStdinReader() *StdinReader {
 }
 
 func (r *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
+	defer close(proxiesCh)
+
 	filename, err := expandPath(r.filename)
 	if err != nil {
 		return err
@@ -40,7 +42,9 @@ func (r *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
+	var line string
 	reader := bufio.NewReader(file)
 
 	for {
@@ -51,15 +55,14 @@ func (r *FileReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 
 		}
 
-		line, err := reader.ReadString('\n')
-		if err == io.EOF {
+		if line, err = reader.ReadString('\n'); err == io.EOF {
 			break
 		}
 
 		proxiesCh <- strings.TrimSpace(line)
 	}
 
-	return file.Close()
+	return nil
 }
 
 func (r *StdinReader) Read(ctx context.Context, proxiesCh chan<- string) error {
@@ -69,29 +72,37 @@ func (r *StdinReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+	errCh := make(chan error)
 
+	go func() {
+		defer close(proxiesCh)
+		defer close(errCh)
+
+		var line string
+		for {
+			if !scanner.Scan() {
+				errCh <- scanner.Err()
+				break
+			}
+
+			if line = strings.TrimSpace(scanner.Text()); line == "exit" {
+				errCh <- nil
+				break
+			}
+
+			if line == "" {
+				continue
+			}
+
+			proxiesCh <- line
 		}
+	}()
 
-		if !scanner.Scan() {
-			return scanner.Err()
-		}
-
-		line := strings.TrimSpace(scanner.Text())
-
-		if line == "exit" {
-			return nil
-		}
-
-		if line == "" {
-			continue
-		}
-
-		proxiesCh <- line
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-errCh:
+		return err
 	}
 }
 

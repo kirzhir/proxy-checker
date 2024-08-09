@@ -21,15 +21,16 @@ type TelegramBot struct {
 }
 
 type HTTPServer struct {
-	Address        string        `yaml:"address" env-default:"localhost:8082"`
-	Timeout        time.Duration `yaml:"timeout" env-default:"4s"`
-	IdleTimeout    time.Duration `yaml:"idle_timeout" env-default:"60s"`
-	MaxRequestSize int64         `yaml:"max_request_size" env-default:"1048576"`
+	Address         string        `yaml:"address" env-default:"localhost:8082"`
+	Timeout         time.Duration `yaml:"timeout" env-default:"4s"`
+	IdleTimeout     time.Duration `yaml:"idle_timeout" env-default:"60s"`
+	MaxRequestSize  int64         `yaml:"max_request_size" env-default:"1048576"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env:"SHUTDOWN_TIMEOUT"  env-default:"10s"`
 }
 
 type ProxyChecker struct {
 	API         string        `yaml:"api" env:"API" env-default:"http://checkip.amazonaws.com"`
-	Timeout     time.Duration `yaml:"timeout" env:"TIMEOUT" env-default:"3600ms"`
+	Timeout     time.Duration `yaml:"timeout" env:"CHECKING_TIMEOUT" env-default:"3600ms"`
 	Concurrency int           `yaml:"concurrency" env:"CONCURRENCY" env-default:"100"`
 }
 
