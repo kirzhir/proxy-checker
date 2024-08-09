@@ -78,7 +78,7 @@ The HTTP server reads its configuration from a file specified by the CONFIG_PATH
 The CLI utility reads all its configuration from environment variables. Each configuration parameter should be set as an environment variable before running the CLI utility.
 * Example
   ```sh
-  API=https://api64.ipify.org TIMEOUT=1s CONCURRENCY=200 ./proxy-checker cli
+  API=https://api64.ipify.org TIMEOUT=1s CONCURRENCY=200 ./proxy-checker cli -v
   ```
 
 <!-- LICENSE -->
