@@ -37,10 +37,8 @@ func NewChecker(cfg config.ProxyChecker) Checker {
 }
 
 func (c *DefaultChecker) AwaitCheck(ctx context.Context, proxiesCh <-chan string) ([]string, error) {
-	var (
-		res []string
-		err error
-	)
+	var err error
+	res := make([]string, 0, len(proxiesCh))
 
 	resCh, errCh := c.Check(ctx, proxiesCh)
 
