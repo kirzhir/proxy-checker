@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"proxy-checker/internal/config"
 	http_server "proxy-checker/internal/http-server"
+	"proxy-checker/internal/logger"
 	"runtime"
 	"syscall"
 	"time"
@@ -24,7 +25,8 @@ type ServerCommand struct {
 	cfg  *config.Config
 	temp *template.Template
 
-	verbose bool
+	verbose     bool
+	concurrency uint
 }
 
 func NewServerCommand() *ServerCommand {
@@ -33,6 +35,7 @@ func NewServerCommand() *ServerCommand {
 	}
 
 	gc.fs.BoolVar(&gc.verbose, "v", false, "verbosity mode")
+	gc.fs.UintVar(&gc.concurrency, "c", 0, "concurrency limit")
 
 	return gc
 }
@@ -46,10 +49,18 @@ func (g *ServerCommand) Init(args []string) error {
 		return err
 	}
 
+	if err := setConcurrencyEnv(g.concurrency); err != nil {
+		return err
+	}
+
+	if err := setVerbosityMode(g.verbose); err != nil {
+		return err
+	}
+
 	g.cfg = config.MustLoad()
 	g.temp = template.Must(template.ParseGlob("web/templates/*"))
 
-	g.setupLogger()
+	setupLogger(g.cfg)
 	slog.Info("starting", slog.String("env", g.cfg.Env))
 	slog.Debug("debug enabled")
 
@@ -96,26 +107,23 @@ func (g *ServerCommand) Run(ctx context.Context) error {
 	return eg.Wait()
 }
 
-func (g *ServerCommand) setupLogger() {
-	var logger *slog.Logger
+func setupLogger(cfg *config.Config) {
+	var l *slog.Logger
 
 	level := slog.LevelInfo
 
-	if g.verbose {
+	if cfg.Verbose {
 		level = slog.LevelDebug
-		slog.SetLogLoggerLevel(level)
 	}
 
-	switch g.cfg.Env {
+	switch cfg.Env {
 	case "local":
-		logger = slog.Default()
+		l = slog.New(logger.NewPrettyHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 	default:
-		logger = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}),
-		)
+		l = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 	}
 
-	slog.SetDefault(logger)
+	slog.SetDefault(l)
 }
 
 func open(cfg *config.Config) error {

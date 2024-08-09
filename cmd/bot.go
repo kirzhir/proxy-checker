@@ -19,7 +19,8 @@ type BotCommand struct {
 	fs  *flag.FlagSet
 	cfg *config.Config
 
-	verbose bool
+	verbose     bool
+	concurrency uint
 }
 
 func NewBotCommand() *BotCommand {
@@ -28,6 +29,7 @@ func NewBotCommand() *BotCommand {
 	}
 
 	gc.fs.BoolVar(&gc.verbose, "v", false, "verbosity mode")
+	gc.fs.UintVar(&gc.concurrency, "c", 0, "concurrency limit")
 
 	return gc
 }
@@ -41,9 +43,17 @@ func (g *BotCommand) Init(args []string) error {
 		return err
 	}
 
-	g.setupLogger()
+	if err := setConcurrencyEnv(g.concurrency); err != nil {
+		return err
+	}
+
+	if err := setVerbosityMode(g.verbose); err != nil {
+		return err
+	}
 
 	g.cfg = config.MustLoad()
+
+	setupLogger(g.cfg)
 	if g.cfg.APIToken == "" {
 		return fmt.Errorf("TELEGRAM_API_TOKEN is not set")
 	}
@@ -104,14 +114,4 @@ func handleUpdate(ctx context.Context, bot *tgbotapi.BotAPI, cfg *config.Config,
 	if _, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(resp, "\n"))); err != nil {
 		slog.Error("sending message failed", slog.String("error", err.Error()))
 	}
-}
-
-func (g *BotCommand) setupLogger() {
-	level := slog.LevelInfo
-
-	if g.verbose {
-		level = slog.LevelDebug
-	}
-
-	slog.SetLogLoggerLevel(level)
 }

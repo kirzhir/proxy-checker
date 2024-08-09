@@ -21,7 +21,7 @@ type CliCommand struct {
 	output      string
 	input       string
 	verbose     bool
-	concurrency int
+	concurrency uint
 }
 
 func NewCliCommand() *CliCommand {
@@ -31,7 +31,7 @@ func NewCliCommand() *CliCommand {
 
 	gc.fs.StringVar(&gc.output, "o", "stdout", "output file")
 	gc.fs.StringVar(&gc.input, "i", "stdin", "input file")
-	gc.fs.IntVar(&gc.concurrency, "c", 0, "concurrency limit")
+	gc.fs.UintVar(&gc.concurrency, "c", 0, "concurrency limit")
 	gc.fs.BoolVar(&gc.verbose, "v", false, "verbosity mode")
 
 	return gc
@@ -46,12 +46,16 @@ func (g *CliCommand) Init(args []string) error {
 		return err
 	}
 
-	if err := g.setConcurrencyEnv(); err != nil {
+	if err := setConcurrencyEnv(g.concurrency); err != nil {
+		return err
+	}
+
+	if err := setVerbosityMode(g.verbose); err != nil {
 		return err
 	}
 
 	g.cfg = config.MustLoad()
-	g.setupLogger()
+	setupLogger(g.cfg)
 
 	slog.Info("starting", slog.String("in", g.input), slog.String("out", g.output))
 	slog.Debug("debug enabled")
@@ -123,20 +127,18 @@ func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan strin
 	return proxiesCh
 }
 
-func (g *CliCommand) setConcurrencyEnv() error {
-	if g.concurrency <= 0 {
+func setConcurrencyEnv(concurrency uint) error {
+	if concurrency <= 0 {
 		return nil
 	}
 
-	return os.Setenv("CONCURRENCY", fmt.Sprintf("%d", g.concurrency))
+	return os.Setenv("CONCURRENCY", fmt.Sprintf("%d", concurrency))
 }
 
-func (g *CliCommand) setupLogger() {
-	level := slog.LevelInfo
-
-	if g.verbose {
-		level = slog.LevelDebug
+func setVerbosityMode(verbose bool) error {
+	if !verbose {
+		return nil
 	}
 
-	slog.SetLogLoggerLevel(level)
+	return os.Setenv("VERBOSE", fmt.Sprintf("%t", verbose))
 }

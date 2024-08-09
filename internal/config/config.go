@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Env          string `yaml:"env" env:"ENV" env-default:"local"`
+	Verbose      bool   `yaml:"verbose" env:"VERBOSE" env-default:"false"`
 	HTTPServer   `yaml:"http_server"`
 	ProxyChecker `yaml:"proxy_checker"`
 	TelegramBot  `yaml:"telegram_bot"`
