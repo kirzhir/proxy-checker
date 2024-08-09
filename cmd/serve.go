@@ -6,7 +6,6 @@ import (
 	"flag"
 	"golang.org/x/sync/errgroup"
 	"html/template"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -85,7 +84,7 @@ func (g *ServerCommand) Run(ctx context.Context) error {
 	})
 
 	eg.Go(func() error {
-		log.Printf("listening on %s\n", srv.Addr)
+		slog.Info("listening on " + g.cfg.Address)
 
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err

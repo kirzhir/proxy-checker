@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -80,7 +79,7 @@ func (g *BotCommand) Run(ctx context.Context) error {
 		bot.StopReceivingUpdates()
 	}()
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	slog.Info("Authorized on account", slog.String("username", bot.Self.UserName))
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -90,7 +89,11 @@ func (g *BotCommand) Run(ctx context.Context) error {
 			continue
 		}
 
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+		slog.With(
+			slog.String("username", update.Message.From.UserName),
+			slog.String("msg", update.Message.Text),
+		).Info("Received message")
+
 		go handleUpdate(ctx, bot, g.cfg, update)
 	}
 
