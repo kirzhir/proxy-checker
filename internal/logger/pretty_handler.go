@@ -7,33 +7,49 @@ import (
 	"io"
 	stdLog "log"
 	"log/slog"
+	"strconv"
 )
+
+const (
+	cyan   = 96
+	green  = 92
+	yellow = 93
+	red    = 91
+	gray   = 90
+)
+
+func colorize(colorCode int, v string) string {
+	return fmt.Sprintf("\033[%sm%s%s", strconv.Itoa(colorCode), v, "\033[0m")
+}
 
 type PrettyHandler struct {
 	slog.Handler
-	l      *stdLog.Logger
-	attrs  []slog.Attr
-	colors map[slog.Level]string
+	l     *stdLog.Logger
+	attrs []slog.Attr
 }
 
 func NewPrettyHandler(out io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	return &PrettyHandler{
 		Handler: slog.NewJSONHandler(out, opts),
 		l:       stdLog.New(out, "", 0),
-		colors: map[slog.Level]string{
-			slog.LevelDebug: "\033[36m", // Gray
-			slog.LevelInfo:  "\033[92m", // Cyan
-			slog.LevelWarn:  "\033[93m", // Yellow
-			slog.LevelError: "\033[91m", // Red
-		},
 	}
 }
 
 func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	level := r.Level.String() + ":"
 
-	colorCode := h.colors[r.Level]
-	resetCode := "\033[0m"
+	colorCode := 0
+
+	switch r.Level {
+	case slog.LevelDebug:
+		colorCode = cyan
+	case slog.LevelInfo:
+		colorCode = green
+	case slog.LevelWarn:
+		colorCode = yellow
+	case slog.LevelError:
+		colorCode = red
+	}
 
 	fields := make(map[string]interface{}, r.NumAttrs())
 
@@ -58,13 +74,12 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	timeStr := r.Time.Format("[15:05:05.000]")
-	msg := fmt.Sprintf("%s%s", colorCode, r.Message)
 
 	h.l.Println(
 		timeStr,
-		level,
-		msg,
-		fmt.Sprintf("%s%s", resetCode, string(b)),
+		colorize(colorCode, level),
+		colorize(colorCode, r.Message),
+		colorize(gray, string(b)),
 	)
 
 	return nil
