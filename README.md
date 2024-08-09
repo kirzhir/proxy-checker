@@ -1,11 +1,13 @@
 ## Proxy-Checker
 
-Proxy-Checker is a powerful and versatile tool for checking the functionality of public proxy addresses in the format HOST:PORT
+Proxy-Checker is a powerful and versatile tool for checking the functionality of public proxy addresses in the format
+HOST:PORT
 . It offers both command-line and web interface options, making it easy to use in various environments.
 
-
 ## Installation
+
 To install Proxy-Checker, clone this repository and build the project:
+
   ```sh
 git clone git@github.com:kirzhir/proxy-checker.git
 cd proxy-checker
@@ -13,11 +15,13 @@ make build
   ```
 
 ## Usage
+
 ### Command-Line Interface (CLI)
 
 You can use Proxy-Checker from the command line to check proxies. Here are some examples:
 
 Read from standard input and output to a file:
+
 * Read from standard input and output to a file:
   ```sh
   cat /path/to/proxies.txt | ./proxy-checker cli -o=~/path/to/ok-proxies.txt
@@ -46,16 +50,19 @@ Read from standard input and output to a file:
 
 #### Web Interface
 
-Proxy-Checker also provides a web interface for checking proxies. Navigate to the running server's address in your web browser,  to see the form 
+Proxy-Checker also provides a web interface for checking proxies. Navigate to the running server's address in your web
+browser, to see the form
 
 <img width="200" alt="Снимок экрана 2024-08-01 в 14 21 48" src="https://github.com/user-attachments/assets/4bc778f8-8f76-40d0-a1d9-587e795f07d7">
-
 
 ## Configuration
 
 #### HTTP Server
 
-The HTTP server reads its configuration from a file specified by the CONFIG_PATH environment variable. You need to set this variable to the path of your configuration file before running the server. The configuration file should be in YAML format.
+The HTTP server reads its configuration from a file specified by the CONFIG_PATH environment variable. You need to set
+this variable to the path of your configuration file before running the server. The configuration file should be in YAML
+format.
+
 * Example
   ```sh
   CONFIG_PATH=config/local.yaml ./proxy-checker serve
@@ -75,13 +82,16 @@ The HTTP server reads its configuration from a file specified by the CONFIG_PATH
 
 #### CLI
 
-The CLI utility reads all its configuration from environment variables. Each configuration parameter should be set as an environment variable before running the CLI utility.
+The CLI utility reads all its configuration from environment variables. Each configuration parameter should be set as an
+environment variable before running the CLI utility.
+
 * Example
   ```sh
   API=https://api64.ipify.org TIMEOUT=1s CONCURRENCY=200 ./proxy-checker cli -v
   ```
 
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
