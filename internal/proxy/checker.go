@@ -74,9 +74,7 @@ func (c *DefaultChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-
 						return
 					}
 
-					if p, err := c.CheckOne(ctx, ch); err != nil {
-						slog.Debug(err.Error())
-					} else {
+					if p, err := c.CheckOne(ctx, ch); err == nil {
 						resCh <- p
 					}
 				case <-ctx.Done():
@@ -103,13 +101,22 @@ func (c *DefaultChecker) CheckOne(ctx context.Context, line string) (string, err
 
 	r := make(chan error)
 
-	go func() {
-		r <- c.doRequest(ctx, "http", proxy)
-	}()
+	fn := func(schema string) {
+		now := time.Now()
+		log := slog.With(slog.String("schema", schema), slog.String("proxy", proxy))
 
-	go func() {
-		r <- c.doRequest(ctx, "socks5", proxy)
-	}()
+		log.Debug("start proxy checking")
+		err := c.doRequest(ctx, schema, proxy)
+		log.Debug("proxy checking finished",
+			slog.String("error", errToStr(err)),
+			slog.String("duration", time.Since(now).String()),
+		)
+
+		r <- err
+	}
+
+	go fn("http")
+	go fn("socks5")
 
 	var err error
 	for i := 0; i < 2; i++ {
@@ -159,4 +166,12 @@ func (c *DefaultChecker) doRequest(ctx context.Context, schema, proxy string) er
 	}
 
 	return nil
+}
+
+func errToStr(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	return err.Error()
 }

@@ -82,7 +82,7 @@ func (g *BotCommand) Run(ctx context.Context) error {
 	slog.Info("Authorized on account", slog.String("username", bot.Self.UserName))
 
 	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	u.Timeout = int(g.cfg.ShutdownTimeout.Seconds())
 
 	for update := range bot.GetUpdatesChan(u) {
 		if update.Message == nil {
