@@ -13,7 +13,7 @@ import (
 func TestDoRequest_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("127.0.0.1")) // используем IP 127.0.0.1
+		w.Write([]byte("127.0.0.1"))
 	}))
 	defer server.Close()
 
@@ -22,7 +22,7 @@ func TestDoRequest_Success(t *testing.T) {
 
 	cfg := config.ProxyChecker{
 		API:         server.URL,
-		Timeout:     5 * time.Second, // Увеличен таймаут для предотвращения timeouts
+		Timeout:     5 * time.Second,
 		Concurrency: 1,
 	}
 	checker := NewChecker(cfg)
@@ -34,7 +34,6 @@ func TestDoRequest_Success(t *testing.T) {
 	}
 }
 
-// Тестирование функции doRequest при несоответствии IP
 func TestDoRequest_IPMismatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

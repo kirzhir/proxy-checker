@@ -19,7 +19,6 @@ func TestFileWriter_Write(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	// Write proxies to the channel
 	go func() {
 		defer close(proxiesCh)
 		for _, proxy := range proxies {
@@ -32,7 +31,6 @@ func TestFileWriter_Write(t *testing.T) {
 		t.Fatalf("failed to write proxies to file: %v", err)
 	}
 
-	// Verify the content of the file
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("failed to read file: %v", err)

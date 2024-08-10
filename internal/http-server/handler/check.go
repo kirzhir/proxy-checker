@@ -10,16 +10,22 @@ import (
 	"strings"
 )
 
+const maxProxies = 100
+
+var (
+	errEmptyRequest   = fmt.Errorf("request cannot be empty")
+	errTooManyProxies = fmt.Errorf("request cannot contain more than %d proxies", maxProxies)
+)
+
 type ProxyRequest []string
 
 func (req ProxyRequest) Validate(ctx context.Context) map[string]error {
-	const maxProxies = 100
 
 	errors := map[string]error{}
 	if len(req) == 0 {
-		errors["proxies"] = fmt.Errorf("request cannot be empty")
+		errors["proxies"] = errEmptyRequest
 	} else if len(req) > maxProxies {
-		errors["proxies"] = fmt.Errorf("request cannot contain more than %d proxies", maxProxies)
+		errors["proxies"] = errTooManyProxies
 	}
 
 	return errors
