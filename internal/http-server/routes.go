@@ -32,9 +32,6 @@ func addRoutes(
 	temp *template.Template,
 	checker proxy.Checker,
 ) {
-
-	mux.Mount("/debug", chi_middleware.Profiler())
-
 	mux.Route("/api/v1/check", func(r chi.Router) {
 		r.Use(middleware.RateLimiting(3 * time.Minute))
 		r.Post("/", handler.ProxyCheckAPI(checker))
