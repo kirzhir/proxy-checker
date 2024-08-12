@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func RateLimiting() func(next http.Handler) http.Handler {
+func RateLimiting(cleanUpTimeout time.Duration) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		type client struct {
 			limiter  *rate.Limiter
@@ -24,7 +24,7 @@ func RateLimiting() func(next http.Handler) http.Handler {
 
 				mu.Lock()
 				for ip, c := range clients {
-					if time.Since(c.lastSeen) > 3*time.Minute {
+					if time.Since(c.lastSeen) > cleanUpTimeout {
 						delete(clients, ip)
 					}
 				}

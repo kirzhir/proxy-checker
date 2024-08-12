@@ -9,6 +9,7 @@ import (
 	"proxy-checker/internal/http-server/handler"
 	"proxy-checker/internal/http-server/middleware"
 	"proxy-checker/internal/proxy"
+	"time"
 )
 
 func New(cfg *config.Config, template *template.Template) http.Handler {
@@ -35,12 +36,12 @@ func addRoutes(
 	mux.Mount("/debug", chi_middleware.Profiler())
 
 	mux.Route("/api/v1/check", func(r chi.Router) {
-		r.Use(middleware.RateLimiting())
+		r.Use(middleware.RateLimiting(3 * time.Minute))
 		r.Post("/", handler.ProxyCheckAPI(checker))
 	})
 
 	mux.Route("/check", func(r chi.Router) {
-		r.Use(middleware.RateLimiting())
+		r.Use(middleware.RateLimiting(3 * time.Minute))
 		r.Post("/", handler.ProxyCheckWeb(temp, checker))
 	})
 
