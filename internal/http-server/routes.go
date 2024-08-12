@@ -45,6 +45,7 @@ func addRoutes(
 	})
 
 	mux.Get("/healthz", handleHealthz())
+	mux.Get("/ip", handleIP())
 	mux.Get("/", handler.ProxyCheckForm(temp))
 }
 
@@ -52,5 +53,12 @@ func handleHealthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("I'm alive"))
+	}
+}
+
+func handleIP() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(r.RemoteAddr))
 	}
 }
