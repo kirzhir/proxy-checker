@@ -24,15 +24,15 @@ Read from standard input and output to a file:
 
 * Read from standard input and output to a file:
   ```sh
-  cat /path/to/proxies.txt | ./proxy-checker cli -o=~/path/to/ok-proxies.txt
+  cat ~/path/to/proxies/socks4.txt | ./bin/pc cli -o=~/path/to/ok-proxies.txt
   ```
 * Check proxies from a file:
   ```sh
-  ./proxy-checker cli -i=~/path/to/proxies.csv
+  ./bin/pc cli -i=~/path/to/proxies/socks4.csv
   ```
 * Default settings (input from stdin and output to stdout):
   ```sh
-  ./proxy-checker cli
+  ./bin/pc cli -v
   ```
 
 ### HTTP Server
@@ -41,7 +41,7 @@ Read from standard input and output to a file:
 
 * Proxy-Checker can be run as an HTTP server to support API requests. Here’s how to start the server:
   ```sh
-  CONFIG_PATH=config/local.yaml ./proxy-checker serve
+  CONFIG_PATH=config/local.yaml ./bin/pc serve
   ```
 * Once the server is running, you can check proxies using a POST request:
   ```sh
@@ -63,7 +63,7 @@ format.
 
 * Example
   ```sh
-  CONFIG_PATH=config/local.yaml ./proxy-checker serve
+  CONFIG_PATH=config/local.yaml  ./bin/pc  serve
   ```
 * Structure
   ```yaml
@@ -85,7 +85,7 @@ environment variable before running the CLI utility.
 
 * Example
   ```sh
-  API=https://api64.ipify.org TIMEOUT=1s CONCURRENCY=200 ./proxy-checker cli -v
+  API=https://self.hosted.checker/ip TIMEOUT=2s CONCURRENCY=200 ./bin/pc cli
   ```
 
 <!-- LICENSE -->

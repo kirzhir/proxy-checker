@@ -3,4 +3,4 @@
 all: cli server
 
 build:
-	go build -o ./proxy-checker
+	go build -o ./bin/pc
