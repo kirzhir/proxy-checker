@@ -63,7 +63,7 @@ format.
 
 * Example
   ```sh
-  CONFIG_PATH=config/local.yaml  ./bin/pc  serve
+  CONFIG_PATH=config/local.yaml ./bin/pc serve
   ```
 * Structure
   ```yaml
