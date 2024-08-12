@@ -15,7 +15,14 @@ type Runner interface {
 }
 
 func main() {
-	if err := root(os.Args[1:]); err != nil {
+
+	cmds := []Runner{
+		cmd.NewCliCommand(),
+		cmd.NewServerCommand(),
+		cmd.NewBotCommand(),
+	}
+
+	if err := root(os.Args[1:], cmds); err != nil {
 		if errors.Is(err, context.Canceled) {
 			os.Exit(0)
 		}
@@ -25,18 +32,12 @@ func main() {
 	}
 }
 
-func root(args []string) error {
+func root(args []string, cmds []Runner) error {
 	if len(args) < 1 {
 		return errors.New("you must pass a sub-command")
 	}
 
-	cmds := []Runner{
-		cmd.NewCliCommand(),
-		cmd.NewServerCommand(),
-		cmd.NewBotCommand(),
-	}
-
-	subcommand := os.Args[1]
+	subcommand := args[0]
 
 	for _, c := range cmds {
 		if c.Name() != subcommand {
@@ -50,10 +51,5 @@ func root(args []string) error {
 		return c.Run(context.Background())
 	}
 
-	var join string
-	for _, c := range cmds {
-		join = fmt.Sprintf("%s '%s'", join, c.Name())
-	}
-
-	return fmt.Errorf("expected%s subcommands", join)
+	return fmt.Errorf("unknown subcommand: %s", subcommand)
 }
