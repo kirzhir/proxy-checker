@@ -28,7 +28,7 @@ Read from standard input and output to a file:
   ```
 * Check proxies from a file:
   ```sh
-  ./bin/pc cli -i=~/path/to/proxies/socks4.csv
+  ./bin/pc cli -i=~/path/to/proxies/socks5.csv
   ```
 * Default settings (input from stdin and output to stdout):
   ```sh
