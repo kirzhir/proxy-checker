@@ -11,17 +11,23 @@ import (
 )
 
 func TestDoRequest_Success(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("127.0.0.1"))
+		w.Write([]byte("111.111.111.111"))
 	}))
-	defer server.Close()
+	defer proxyServer.Close()
 
-	_, port, _ := strings.Cut(server.Listener.Addr().String(), ":")
+	ripServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("111.111.111.112"))
+	}))
+	defer ripServer.Close()
+
+	_, port, _ := strings.Cut(proxyServer.Listener.Addr().String(), ":")
 	proxyAddress := "127.0.0.1:" + port
 
 	cfg := config.ProxyChecker{
-		API:         server.URL,
+		API:         ripServer.URL,
 		Timeout:     5 * time.Second,
 		Concurrency: 1,
 	}
@@ -37,7 +43,7 @@ func TestDoRequest_Success(t *testing.T) {
 func TestDoRequest_IPMismatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("111.111.111.111"))
+		w.Write([]byte("127.0.0.1"))
 	}))
 	defer server.Close()
 
@@ -52,6 +58,7 @@ func TestDoRequest_IPMismatch(t *testing.T) {
 	}
 	checker := NewChecker(cfg)
 
+	checker.(*DefaultChecker).Target = server.URL
 	err := checker.(*DefaultChecker).doRequest(context.Background(), "http", proxyAddress)
 
 	if err == nil || !strings.Contains(err.Error(), "proxy IP mismatch") {
@@ -60,18 +67,24 @@ func TestDoRequest_IPMismatch(t *testing.T) {
 }
 
 func TestCheckOne_ValidProxy(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("127.0.0.1"))
+		w.Write([]byte("111.111.111.111"))
 	}))
-	defer server.Close()
+	defer proxyServer.Close()
 
-	serverURL := server.Listener.Addr().String()
+	ripServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("111.111.111.112"))
+	}))
+	defer ripServer.Close()
+
+	serverURL := proxyServer.Listener.Addr().String()
 	_, port, _ := strings.Cut(serverURL, ":")
 	proxyAddress := "127.0.0.1:" + port
 
 	cfg := config.ProxyChecker{
-		API:         server.URL,
+		API:         ripServer.URL,
 		Timeout:     5 * time.Second,
 		Concurrency: 1,
 	}
@@ -103,18 +116,24 @@ func TestCheckOne_InvalidProxy(t *testing.T) {
 }
 
 func TestAwaitCheck(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("127.0.0.1"))
+		w.Write([]byte("111.111.111.111"))
 	}))
-	defer server.Close()
+	defer proxyServer.Close()
 
-	serverURL := server.Listener.Addr().String()
+	ripServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("111.111.111.112"))
+	}))
+	defer ripServer.Close()
+
+	serverURL := proxyServer.Listener.Addr().String()
 	_, port, _ := strings.Cut(serverURL, ":")
 	proxyAddress := "127.0.0.1:" + port
 
 	cfg := config.ProxyChecker{
-		API:         server.URL,
+		API:         ripServer.URL,
 		Timeout:     5 * time.Second,
 		Concurrency: 2,
 	}

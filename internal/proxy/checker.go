@@ -26,6 +26,8 @@ type DefaultChecker struct {
 	Target      string
 	Timeout     time.Duration
 	Concurrency int
+	realIP      string
+	once        sync.Once
 }
 
 func NewChecker(cfg config.ProxyChecker) Checker {
@@ -129,6 +131,15 @@ func (c *DefaultChecker) CheckOne(ctx context.Context, line string) (string, err
 }
 
 func (c *DefaultChecker) doRequest(ctx context.Context, schema, proxy string) error {
+	var err error
+	c.once.Do(func() {
+		c.realIP, err = c.getRealIP()
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to get real IP: %w", err)
+	}
+
 	proxyURL := http.ProxyURL(&url.URL{
 		Host:   proxy,
 		Scheme: schema,
@@ -161,11 +172,30 @@ func (c *DefaultChecker) doRequest(ctx context.Context, schema, proxy string) er
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	if !strings.Contains(string(body), strings.Split(proxy, ":")[0]) {
+	if strings.Contains(strings.TrimSpace(string(body)), c.realIP) {
 		return fmt.Errorf("proxy IP mismatch: %s", proxy)
 	}
 
 	return nil
+}
+
+func (c *DefaultChecker) getRealIP() (string, error) {
+	resp, err := http.Get(c.Target)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("non-200 response: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	return strings.TrimSpace(string(body)), nil
 }
 
 func errToStr(err error) string {
