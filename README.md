@@ -1,4 +1,4 @@
-## Proxy-Checker
+## Proxy-Checker (#proxy-checker)
 
 Proxy-Checker is a powerful and versatile tool for checking the functionality of public proxy addresses in the format
 HOST:PORT
@@ -95,5 +95,4 @@ environment variable before running the CLI utility.
 Distributed under the MIT License. See `LICENSE` for more information.
 
 
-<p align="right">(<a href="##Proxy-Checker">back to top</a>)</p>
-[🔼 back to top](#Proxy-Checker)
+<p align="right">(<a href="#proxy-checker">back to top</a>)</p>
