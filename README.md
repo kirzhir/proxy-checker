@@ -1,4 +1,4 @@
-## Proxy-Checker (#proxy-checker)
+## [Proxy-Checker](#proxy-checker)
 
 Proxy-Checker is a powerful and versatile tool for checking the functionality of public proxy addresses in the format
 HOST:PORT
