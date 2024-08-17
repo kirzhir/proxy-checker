@@ -31,7 +31,7 @@ type HTTPServer struct {
 type ProxyChecker struct {
 	API         string        `yaml:"api" env:"API" env-default:"http://checkip.amazonaws.com"`
 	Timeout     time.Duration `yaml:"timeout" env:"CHECKING_TIMEOUT" env-default:"3600ms"`
-	Concurrency int           `yaml:"concurrency" env:"CONCURRENCY" env-default:"100"`
+	Concurrency uint          `yaml:"concurrency" env:"CONCURRENCY" env-default:"100"`
 }
 
 func MustLoad() *Config {

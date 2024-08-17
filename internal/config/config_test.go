@@ -23,7 +23,7 @@ func TestMustLoad_Defaults(t *testing.T) {
 	assert.Equal(10*time.Second, cfg.HTTPServer.ShutdownTimeout)
 	assert.Equal("http://checkip.amazonaws.com", cfg.ProxyChecker.API)
 	assert.Equal(3600*time.Millisecond, cfg.ProxyChecker.Timeout)
-	assert.Equal(100, cfg.ProxyChecker.Concurrency)
+	assert.Equal(uint(100), cfg.ProxyChecker.Concurrency)
 	assert.Equal("", cfg.TelegramBot.APIToken)
 }
 

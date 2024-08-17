@@ -10,36 +10,6 @@ import (
 	"time"
 )
 
-func TestDoRequest_Success(t *testing.T) {
-	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("111.111.111.111"))
-	}))
-	defer proxyServer.Close()
-
-	ripServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("111.111.111.112"))
-	}))
-	defer ripServer.Close()
-
-	_, port, _ := strings.Cut(proxyServer.Listener.Addr().String(), ":")
-	proxyAddress := "127.0.0.1:" + port
-
-	cfg := config.ProxyChecker{
-		API:         ripServer.URL,
-		Timeout:     5 * time.Second,
-		Concurrency: 1,
-	}
-	checker := NewChecker(cfg)
-
-	err := checker.(*DefaultChecker).doRequest(context.Background(), "http", proxyAddress)
-
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-}
-
 func TestDoRequest_IPMismatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -25,7 +25,7 @@ type Checker interface {
 type DefaultChecker struct {
 	Target      string
 	Timeout     time.Duration
-	Concurrency int
+	Concurrency uint
 	realIP      string
 	once        sync.Once
 }
@@ -64,7 +64,7 @@ func (c *DefaultChecker) Check(ctx context.Context, proxiesCh <-chan string) (<-
 	errCh := make(chan error, 1)
 	resCh := make(chan string, c.Concurrency)
 
-	for i := 0; i < c.Concurrency; i++ {
+	for i := uint(0); i < c.Concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -101,13 +101,22 @@ func (c *DefaultChecker) CheckOne(ctx context.Context, line string) (string, err
 		return proxy, fmt.Errorf("invalid proxy url: %s", line)
 	}
 
+	var err error
+	c.once.Do(func() {
+		c.realIP, err = c.getRealIP()
+	})
+
+	if err != nil {
+		return proxy, fmt.Errorf("failed to get real IP: %w", err)
+	}
+
 	r := make(chan error)
 
 	fn := func(schema string) {
-		now := time.Now()
 		log := slog.With(slog.String("schema", schema), slog.String("proxy", proxy))
-
 		log.Debug("start proxy checking")
+
+		now := time.Now()
 		err := c.doRequest(ctx, schema, proxy)
 		log.Debug("proxy checking finished",
 			slog.String("error", errToStr(err)),
@@ -120,7 +129,6 @@ func (c *DefaultChecker) CheckOne(ctx context.Context, line string) (string, err
 	go fn("http")
 	go fn("socks5")
 
-	var err error
 	for i := 0; i < 2; i++ {
 		if err = <-r; err == nil {
 			return proxy, nil
@@ -131,15 +139,6 @@ func (c *DefaultChecker) CheckOne(ctx context.Context, line string) (string, err
 }
 
 func (c *DefaultChecker) doRequest(ctx context.Context, schema, proxy string) error {
-	var err error
-	c.once.Do(func() {
-		c.realIP, err = c.getRealIP()
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to get real IP: %w", err)
-	}
-
 	proxyURL := http.ProxyURL(&url.URL{
 		Host:   proxy,
 		Scheme: schema,

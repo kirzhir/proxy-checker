@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	cyan   = 96
+	gray   = 90
+	red    = 91
 	green  = 92
 	yellow = 93
-	red    = 91
-	gray   = 90
+	cyan   = 96
 )
 
 func colorize(colorCode int, v string) string {
@@ -37,19 +37,6 @@ func NewPrettyHandler(out io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 
 func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	level := r.Level.String() + ":"
-
-	colorCode := 0
-
-	switch r.Level {
-	case slog.LevelDebug:
-		colorCode = cyan
-	case slog.LevelInfo:
-		colorCode = green
-	case slog.LevelWarn:
-		colorCode = yellow
-	case slog.LevelError:
-		colorCode = red
-	}
 
 	fields := make(map[string]interface{}, r.NumAttrs())
 
@@ -73,16 +60,31 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 		}
 	}
 
-	timeStr := r.Time.Format("[15:05:05.000]")
+	colorCode := code(r.Level)
 
 	h.l.Println(
-		timeStr,
+		r.Time.Format("[15:05:05.000]"),
 		colorize(colorCode, level),
 		colorize(colorCode, r.Message),
 		colorize(gray, string(b)),
 	)
 
 	return nil
+}
+
+func code(level slog.Level) int {
+	switch level {
+	case slog.LevelDebug:
+		return cyan
+	case slog.LevelInfo:
+		return green
+	case slog.LevelWarn:
+		return yellow
+	case slog.LevelError:
+		return red
+	}
+
+	return 0
 }
 
 func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
