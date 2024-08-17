@@ -51,11 +51,12 @@ func (g *BotCommand) Init(args []string) error {
 	}
 
 	g.cfg = config.MustLoad()
-
-	setupLogger(g.cfg)
 	if g.cfg.APIToken == "" {
 		return fmt.Errorf("TELEGRAM_API_TOKEN is not set")
 	}
+
+	setupLogger(g.cfg)
+	checkInternetConnection()
 
 	slog.Info("starting bot...")
 	slog.Debug("debug enabled")

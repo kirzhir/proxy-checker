@@ -6,7 +6,9 @@ import (
 	"flag"
 	"golang.org/x/sync/errgroup"
 	"html/template"
+	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,6 +18,7 @@ import (
 	"proxy-checker/internal/logger"
 	"runtime"
 	"syscall"
+	"time"
 )
 
 type ServerCommand struct {
@@ -59,6 +62,8 @@ func (g *ServerCommand) Init(args []string) error {
 	g.temp = template.Must(template.ParseGlob("web/templates/*"))
 
 	setupLogger(g.cfg)
+	checkInternetConnection()
+
 	slog.Info("starting", slog.String("env", g.cfg.Env))
 	slog.Debug("debug enabled")
 
@@ -143,4 +148,14 @@ func open(cfg *config.Config) error {
 	}
 
 	return exec.Command(cmd, append(args, "http://"+cfg.Address)...).Start()
+}
+
+func checkInternetConnection() {
+	dialer := &net.Dialer{Timeout: 1 * time.Second}
+
+	conn, err := dialer.Dial("tcp", "8.8.8.8:53")
+	if err != nil {
+		log.Panicf("no internet connection: %s", err)
+	}
+	defer conn.Close()
 }

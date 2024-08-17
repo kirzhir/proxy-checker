@@ -55,7 +55,9 @@ func (g *CliCommand) Init(args []string) error {
 	}
 
 	g.cfg = config.MustLoad()
+
 	setupLogger(g.cfg)
+	checkInternetConnection()
 
 	slog.Info("starting", slog.String("in", g.input), slog.String("out", g.output))
 	slog.Debug("debug enabled")
