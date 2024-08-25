@@ -17,6 +17,14 @@ type FileWriter struct {
 
 type StdoutWriter struct{}
 
+func NewWriter(out string) Writer {
+	if out == "stdout" {
+		return NewStdoutWriter()
+	}
+
+	return NewFileWriter(out)
+}
+
 func NewStdoutWriter() Writer {
 	return &StdoutWriter{}
 }

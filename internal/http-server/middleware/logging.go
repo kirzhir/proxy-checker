@@ -6,36 +6,34 @@ import (
 	"time"
 )
 
-func Logging() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		log := slog.With(
-			slog.String("component", "middleware/logging"),
+func Logging(next http.Handler) http.Handler {
+	log := slog.With(
+		slog.String("component", "middleware/logging"),
+	)
+
+	log.Info("logger middleware enabled")
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		entry := log.With(
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.String("user_agent", r.UserAgent()),
 		)
 
-		log.Info("logger middleware enabled")
+		ww := wrapResponseWriter(w)
 
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			entry := log.With(
-				slog.String("method", r.Method),
-				slog.String("path", r.URL.Path),
-				slog.String("remote_addr", r.RemoteAddr),
-				slog.String("user_agent", r.UserAgent()),
+		t1 := time.Now()
+		defer func() {
+			entry.Info("request completed",
+				slog.Int("status", ww.Status()),
+				slog.Int("bytes", ww.BytesWritten()),
+				slog.String("duration", time.Since(t1).String()),
 			)
+		}()
 
-			ww := wrapResponseWriter(w)
-
-			t1 := time.Now()
-			defer func() {
-				entry.Info("request completed",
-					slog.Int("status", ww.Status()),
-					slog.Int("bytes", ww.BytesWritten()),
-					slog.String("duration", time.Since(t1).String()),
-				)
-			}()
-
-			next.ServeHTTP(ww, r)
-		})
-	}
+		next.ServeHTTP(ww, r)
+	})
 }
 
 type responseWriter struct {

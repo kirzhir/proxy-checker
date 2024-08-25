@@ -12,7 +12,7 @@ func TestRateLimiting_AllowRequest(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	rlMiddleware := RateLimiting(time.Second * 5)(handler)
+	rlMiddleware := RateLimiting(time.Second*5, handler)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.RemoteAddr = "192.0.2.1:12345"
@@ -31,7 +31,7 @@ func TestRateLimiting_TooManyRequests(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	rlMiddleware := RateLimiting(time.Second * 5)(handler)
+	rlMiddleware := RateLimiting(time.Second*5, handler)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.RemoteAddr = "192.0.2.1:12345"
@@ -62,7 +62,7 @@ func TestRateLimiting_ClientCleanup(t *testing.T) {
 
 	cleanUpTimeout := time.Second * 3
 
-	rlMiddleware := RateLimiting(cleanUpTimeout)(handler)
+	rlMiddleware := RateLimiting(cleanUpTimeout, handler)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.RemoteAddr = "192.0.2.1:12345"

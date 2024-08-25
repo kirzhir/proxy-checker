@@ -41,7 +41,7 @@ Read from standard input and output to a file:
 
 * Proxy-Checker can be run as an HTTP server to support API requests. Here’s how to start the server:
   ```sh
-  CONFIG_PATH=config/local.yaml ./bin/pc serve
+  ADDRESS=localhost:8082 ./bin/pc serve
   ```
 * Once the server is running, you can check proxies using a POST request:
   ```sh
@@ -55,33 +55,8 @@ browser, to see the form.
 
 ## Configuration
 
-#### HTTP Server
-
-The HTTP server reads its configuration from a file specified by the CONFIG_PATH environment variable. You need to set
-this variable to the path of your configuration file before running the server. The configuration file should be in YAML
-format.
-
-* Example
-  ```sh
-  CONFIG_PATH=config/local.yaml ./bin/pc serve
-  ```
-* Structure
-  ```yaml
-  env: "local"
-  http_server:
-    address: "0.0.0.0:8082"
-    timeout: 4s
-    idle_timeout: 30s
-  proxy_checker:
-    api: "http://checkip.amazonaws.com"
-    timeout: 1800ms
-    concurrency: 100
-  ```
-
-#### CLI
-
-The CLI utility reads all its configuration from environment variables. Each configuration parameter should be set as an
-environment variable before running the CLI utility.
+The proxy-checker reads all its configuration from environment variables. Each configuration parameter should be set as an
+environment variable before running.
 
 * Example
   ```sh

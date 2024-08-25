@@ -82,9 +82,15 @@ func (g *CliCommand) Run(ctx context.Context) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	proxiesCh := runReading(ctx, g.input, eg)
+	proxiesCh := make(chan string)
+	eg.Go(func() error {
+		return proxy.NewReader(g.input).Read(ctx, proxiesCh)
+	})
+
 	resultCh, errorsCh := proxy.NewChecker(g.cfg.ProxyChecker).Check(ctx, proxiesCh)
-	runWriting(ctx, g.output, resultCh, eg)
+	eg.Go(func() error {
+		return proxy.NewWriter(g.output).Write(ctx, resultCh)
+	})
 
 	eg.Go(func() error {
 		return <-errorsCh
@@ -95,36 +101,6 @@ func (g *CliCommand) Run(ctx context.Context) error {
 	}()
 
 	return <-exit
-}
-
-func runWriting(ctx context.Context, out string, proxiesCh <-chan string, eg *errgroup.Group) {
-	var writer proxy.Writer
-	if out == "stdout" {
-		writer = proxy.NewStdoutWriter()
-	} else {
-		writer = proxy.NewFileWriter(out)
-	}
-
-	eg.Go(func() error {
-		return writer.Write(ctx, proxiesCh)
-	})
-}
-
-func runReading(ctx context.Context, in string, eg *errgroup.Group) <-chan string {
-	var reader proxy.Reader
-
-	if in == "stdin" {
-		reader = proxy.NewStdinReader()
-	} else {
-		reader = proxy.NewFileReader(in)
-	}
-
-	proxiesCh := make(chan string)
-	eg.Go(func() error {
-		return reader.Read(ctx, proxiesCh)
-	})
-
-	return proxiesCh
 }
 
 func setConcurrencyEnv(concurrency uint) error {

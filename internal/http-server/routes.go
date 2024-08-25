@@ -1,8 +1,6 @@
 package http_server
 
 import (
-	"github.com/go-chi/chi/v5"
-	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"html/template"
 	"net/http"
 	"proxy-checker/internal/config"
@@ -13,10 +11,7 @@ import (
 )
 
 func New(cfg *config.Config, template *template.Template) http.Handler {
-	mux := chi.NewRouter()
-
-	mux.Use(middleware.Logging())
-	mux.Use(chi_middleware.RequestSize(cfg.MaxRequestSize))
+	mux := http.NewServeMux()
 
 	addRoutes(
 		mux,
@@ -24,27 +19,23 @@ func New(cfg *config.Config, template *template.Template) http.Handler {
 		proxy.NewChecker(cfg.ProxyChecker),
 	)
 
-	return mux
+	var h http.Handler = mux
+	h = middleware.Logging(h)
+	h = middleware.RequestSizing(cfg.MaxRequestSize, h)
+
+	return h
 }
 
 func addRoutes(
-	mux *chi.Mux,
+	mux *http.ServeMux,
 	temp *template.Template,
 	checker proxy.Checker,
 ) {
-	mux.Route("/api/v1/check", func(r chi.Router) {
-		r.Use(middleware.RateLimiting(3 * time.Minute))
-		r.Post("/", handler.ProxyCheckAPI(checker))
-	})
-
-	mux.Route("/check", func(r chi.Router) {
-		r.Use(middleware.RateLimiting(3 * time.Minute))
-		r.Post("/", handler.ProxyCheckWeb(temp, checker))
-	})
-
-	mux.Get("/healthz", handleHealthz())
-	mux.Get("/ip", handleIP())
-	mux.Get("/", handler.ProxyCheckForm(temp))
+	mux.Handle("POST /api/v1/check", middleware.RateLimiting(3*time.Minute, handler.ProxyCheckAPI(checker)))
+	mux.Handle("POST /check", middleware.RateLimiting(3*time.Minute, handler.ProxyCheckWeb(temp, checker)))
+	mux.Handle("GET /healthz", handleHealthz())
+	mux.Handle("GET /ip", handleIP())
+	mux.Handle("GET /", handler.ProxyCheckForm(temp))
 }
 
 func handleHealthz() http.HandlerFunc {

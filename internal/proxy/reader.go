@@ -22,6 +22,14 @@ type FileReader struct {
 type StdinReader struct {
 }
 
+func NewReader(in string) Reader {
+	if in == "stdin" {
+		return NewStdinReader()
+	}
+
+	return NewFileReader(in)
+}
+
 func NewFileReader(filename string) Reader {
 	return &FileReader{filename: filename}
 }
