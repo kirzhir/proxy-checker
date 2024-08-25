@@ -8,14 +8,14 @@ import (
 
 type Config struct {
 	Env     string `envconfig:"ENV" default:"local"`
-	Verbose bool   `envconfig:"VERBOSE" default:"false"`
+	Verbose bool   `envconfig:"VERBOSE"`
 	HTTPServer
 	ProxyChecker
 	TelegramBot
 }
 
 type TelegramBot struct {
-	APIToken string `envconfig:"TELEGRAM_API_TOKEN" env-default:""`
+	APIToken string `envconfig:"TELEGRAM_API_TOKEN"`
 }
 
 type HTTPServer struct {
