@@ -1,8 +1,0 @@
-env: "test"
-http_server:
-  address: "127.0.0.1:9090"
-  timeout: "5s"
-proxy_checker:
-  api: "http://example.com"
-telegram_bot:
-  api_token: "file-token"
