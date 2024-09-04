@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"flag"
-	"fmt"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"os"
@@ -101,20 +100,4 @@ func (g *CliCommand) Run(ctx context.Context) error {
 	}()
 
 	return <-exit
-}
-
-func setConcurrencyEnv(concurrency uint) error {
-	if concurrency <= 0 {
-		return nil
-	}
-
-	return os.Setenv("CONCURRENCY", fmt.Sprintf("%d", concurrency))
-}
-
-func setVerbosityMode(verbose bool) error {
-	if !verbose {
-		return nil
-	}
-
-	return os.Setenv("VERBOSE", fmt.Sprintf("%t", verbose))
 }

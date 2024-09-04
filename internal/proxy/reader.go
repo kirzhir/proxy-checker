@@ -94,7 +94,6 @@ func (r *StdinReader) Read(ctx context.Context, proxiesCh chan<- string) error {
 			}
 
 			if line = strings.TrimSpace(scanner.Text()); line == "exit" {
-				errCh <- nil
 				break
 			}
 

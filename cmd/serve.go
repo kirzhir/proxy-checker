@@ -6,19 +6,13 @@ import (
 	"flag"
 	"golang.org/x/sync/errgroup"
 	"html/template"
-	"log"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"proxy-checker/internal/config"
 	http_server "proxy-checker/internal/http-server"
-	"proxy-checker/internal/logger"
-	"runtime"
 	"syscall"
-	"time"
 )
 
 type ServerCommand struct {
@@ -108,54 +102,4 @@ func (g *ServerCommand) Run(ctx context.Context) error {
 	})
 
 	return eg.Wait()
-}
-
-func setupLogger(cfg *config.Config) {
-	var l *slog.Logger
-
-	level := slog.LevelInfo
-
-	if cfg.Verbose {
-		level = slog.LevelDebug
-	}
-
-	switch cfg.Env {
-	case "local":
-		l = slog.New(logger.NewPrettyHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
-	default:
-		l = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
-	}
-
-	slog.SetDefault(l)
-}
-
-func open(cfg *config.Config) error {
-	if cfg.Env != "local" {
-		return nil
-	}
-
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start"}
-	case "darwin":
-		cmd = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		cmd = "xdg-open"
-	}
-
-	return exec.Command(cmd, append(args, "http://"+cfg.Address)...).Start()
-}
-
-func checkInternetConnection() {
-	dialer := &net.Dialer{Timeout: 1 * time.Second}
-
-	conn, err := dialer.Dial("tcp", "8.8.8.8:53")
-	if err != nil {
-		log.Panicf("no internet connection: %s", err)
-	}
-	defer conn.Close()
 }
